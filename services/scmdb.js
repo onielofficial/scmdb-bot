@@ -1,8 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_PATH = path.join(__dirname, '../data/merged.json');
-let _cache = null;
+const DATA_PATH         = path.join(__dirname, '../data/merged.json');
+const CRAFT_ITEMS_PATH  = path.join(__dirname, '../data/crafting_items.json');
+let _cache       = null;
+let _craftCache  = null;
 
 function getData() {
   if (_cache) return _cache;
@@ -11,6 +13,15 @@ function getData() {
   }
   _cache = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
   return _cache;
+}
+
+function getCraftItemsData() {
+  if (_craftCache) return _craftCache;
+  if (!fs.existsSync(CRAFT_ITEMS_PATH)) {
+    throw new Error('ไม่พบไฟล์ crafting_items.json');
+  }
+  _craftCache = JSON.parse(fs.readFileSync(CRAFT_ITEMS_PATH, 'utf8'));
+  return _craftCache;
 }
 
 function resolveFaction(data, factionGuid) {
@@ -167,4 +178,23 @@ function searchQuest(keyword, system = null) {
     .slice(0, 10);
 }
 
-module.exports = { getData, searchBlueprint, findResource, getCraftInfo, searchQuest };
+function getCraftingItem(keyword) {
+  const data = getCraftItemsData();
+  const kw = keyword.toLowerCase();
+  const item = data.items.find(i => i.name?.toLowerCase().includes(kw));
+  if (!item) return null;
+
+  const pool = item.damageResistanceIndex != null
+    ? data.damageResistancePools[item.damageResistanceIndex]
+    : null;
+
+  return {
+    name:                 item.name,
+    manufacturer:         item.manufacturer || null,
+    itemType:             item.itemType || null,
+    temperatureResistance: item.temperatureResistance || null,
+    damageResistance:     pool || null,
+  };
+}
+
+module.exports = { getData, searchBlueprint, findResource, getCraftInfo, getCraftingItem, searchQuest };

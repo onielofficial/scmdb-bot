@@ -1,11 +1,13 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getCraftInfo } = require('../services/scmdb');
-
-const CLASS_LABEL = { light: 'Light', medium: 'Medium', heavy: 'Heavy' };
+const { getCraftInfo, getCraftingItem } = require('../services/scmdb');
 
 function qtyBar(amount, max, len = 10) {
   const filled = Math.max(1, Math.round((amount / max) * len));
   return '■'.repeat(filled) + '□'.repeat(len - filled);
+}
+
+function pct(multiplier) {
+  return Math.round(multiplier * 100) + '%';
 }
 
 module.exports = {
@@ -21,13 +23,16 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
     const name = interaction.options.getString('name');
-    let result;
+
+    let craftResult, itemData;
     try {
-      result = getCraftInfo(name);
+      craftResult = getCraftInfo(name);
+      itemData    = getCraftingItem(name);
     } catch (e) {
       return interaction.editReply(`❌ ${e.message}`);
     }
-    if (!result) {
+
+    if (!craftResult && !itemData) {
       return interaction.editReply({
         embeds: [
           new EmbedBuilder()
@@ -37,30 +42,52 @@ module.exports = {
       });
     }
 
-    const armorClass = result.outputs.find(o => o.armorClass && o.armorClass !== '?')?.armorClass;
-    const classLabel = armorClass ? (CLASS_LABEL[armorClass] ?? armorClass) : '—';
+    const itemName     = itemData?.name || craftResult?.itemName || name;
+    const manufacturer = itemData?.manufacturer || '—';
+    const classLabel   = itemData?.itemType || '—';
+    const isArmor      = itemData?.itemType === 'armor';
 
-    const maxAmt = Math.max(...result.materials.map(m => m.amount), 1);
-    const matLines = result.materials
-      .map(m =>
-        '🔧 **' + m.name + '**    ' + m.amount + ' SCU    — · —\n' +
-        qtyBar(m.amount, maxAmt)
-      )
-      .join('\n') || '—';
+    // Materials from merged.json
+    let matLines = '—';
+    if (craftResult?.materials?.length) {
+      const maxAmt = Math.max(...craftResult.materials.map(m => m.amount), 1);
+      matLines = craftResult.materials
+        .map(m =>
+          '🔧 **' + m.name + '**    ' + m.amount + ' SCU    — · —\n' +
+          qtyBar(m.amount, maxAmt)
+        )
+        .join('\n');
+    }
 
-    const statsValue =
-      'Physical/Energy/Distortion/Thermal: — · —\n' +
-      'Stun: — · Min Temp: — · Max Temp: —';
+    // Damage resistance stats (armor only)
+    let statsValue = '—';
+    if (isArmor && itemData.damageResistance) {
+      const dr = itemData.damageResistance;
+      statsValue =
+        'Physical: ' + pct(dr.physical?.multiplier ?? 1) + '\n' +
+        'Energy: '   + pct(dr.energy?.multiplier    ?? 1) + '\n' +
+        'Distortion: '+ pct(dr.distortion?.multiplier?? 1) + '\n' +
+        'Thermal: '  + pct(dr.thermal?.multiplier   ?? 1) + '\n' +
+        'Stun: '     + pct(dr.stun?.multiplier      ?? 1);
+    }
+
+    // Temperature range (armor only)
+    let tempValue = '—';
+    if (isArmor && itemData.temperatureResistance) {
+      const tr = itemData.temperatureResistance;
+      tempValue = 'Min ' + tr.min + '°C / Max ' + tr.max + '°C';
+    }
 
     const embed = new EmbedBuilder()
       .setColor(0x1ABC9C)
-      .setTitle('⚒ Craft — ' + result.itemName)
+      .setTitle('⚒ Craft — ' + itemName)
       .addFields(
-        { name: 'CLASS',        value: classLabel, inline: true },
-        { name: 'MANUFACTURER', value: '—',        inline: true },
-        { name: 'CRAFT TIME',   value: '—',        inline: true },
+        { name: 'CLASS',        value: classLabel,  inline: true },
+        { name: 'MANUFACTURER', value: manufacturer, inline: true },
+        { name: 'CRAFT TIME',   value: 'N/A',        inline: true },
         { name: 'MATERIALS REQUIRED (QUALITY —)', value: matLines },
-        { name: 'STATS ที่ได้รับ (Q—)',            value: statsValue },
+        { name: 'STATS ที่ได้รับ', value: statsValue },
+        { name: 'TEMPERATURE RESISTANCE', value: tempValue },
       )
       .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
