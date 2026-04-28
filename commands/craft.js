@@ -29,7 +29,7 @@ module.exports = {
       return interaction.editReply(`❌ ${e.message}`);
     }
     if (!result) {
-      return interaction.editReply(`ไม่พบ item สำหรับ **${name}**`);
+      return interaction.editReply(`❌ ข้อมูล Craft ไม่มีอยู่ใน dataset นี้`);
     }
     const craftEmbed = new EmbedBuilder()
       .setColor(0x1ABC9C)

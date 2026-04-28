@@ -47,7 +47,6 @@ module.exports = {
           `Faction: **${q.faction || '?'}**`,
           `System: **${q.system || '?'}**`,
           `Reward: **${q.rewardUec?.toLocaleString() || '?'} aUEC**`,
-          `Rep/h: **${q.repPerHour?.toLocaleString() || '?'}**`,
           `Legality: **${q.legality || '?'}**`,
           q.blueprints?.length ? `Blueprints: ${q.blueprints.join(', ')}` : '',
         ].filter(Boolean).join('\n'),

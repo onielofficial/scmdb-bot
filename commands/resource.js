@@ -32,7 +32,7 @@ module.exports = {
     for (const loc of results) {
       embed.addFields({
         name: `${loc.name} (${loc.system || '?'})`,
-        value: `Type: **${loc.type || '?'}** · Probability: **${loc.probability}%**`,
+        value: `Type: **${loc.type || '?'}** · Contracts: **${loc.contracts}**`,
         inline: true,
       });
     }

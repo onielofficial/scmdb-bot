@@ -13,20 +13,36 @@ function getData() {
   return _cache;
 }
 
+function resolveFaction(data, factionGuid) {
+  return data.factions?.[factionGuid]?.name || '?';
+}
+
+function resolveBlueprintNames(data, blueprintRewards) {
+  const names = [];
+  for (const br of (blueprintRewards || [])) {
+    const pool = data.blueprintPools?.[br.blueprintPool];
+    for (const bp of (pool?.blueprints || [])) {
+      if (bp.name) names.push(bp.name);
+    }
+  }
+  return [...new Set(names)];
+}
+
 function searchBlueprint(keyword) {
   const data = getData();
   const kw = keyword.toLowerCase();
   const results = [];
-  for (const mission of (data.missions || [])) {
-    const matched = (mission.blueprint_rewards || [])
-      .filter(bp => bp.name?.toLowerCase().includes(kw));
+  for (const contract of (data.contracts || [])) {
+    if (!contract.blueprintRewards?.length) continue;
+    const allBpNames = resolveBlueprintNames(data, contract.blueprintRewards);
+    const matched = allBpNames.filter(name => name.toLowerCase().includes(kw));
     if (matched.length > 0) {
       results.push({
-        title: mission.title,
-        faction: mission.faction,
-        rewardUec: mission.reward_uec,
-        blueprints: matched.map(bp => bp.name),
-        system: mission.system,
+        title: contract.title,
+        faction: resolveFaction(data, contract.factionGuid),
+        rewardUec: contract.rewardUEC,
+        blueprints: matched,
+        system: (contract.systems || []).join(', '),
       });
     }
   }
@@ -36,77 +52,67 @@ function searchBlueprint(keyword) {
 function findResource(keyword) {
   const data = getData();
   const kw = keyword.toLowerCase();
-  return (data.locations || [])
-    .filter(loc =>
-      (loc.resources || []).some(r => r.name?.toLowerCase().includes(kw))
-    )
-    .map(loc => {
-      const res = loc.resources.find(r =>
-        r.name?.toLowerCase().includes(kw)
-      );
-      return {
-        name: loc.name,
-        system: loc.system,
-        type: loc.type,
-        probability: res?.probability ?? 0,
-      };
-    })
-    .sort((a, b) => b.probability - a.probability)
-    .slice(0, 6);
+
+  const matchedKeys = Object.entries(data.resourcePools || {})
+    .filter(([, res]) => res.name?.toLowerCase().includes(kw))
+    .map(([key]) => key);
+
+  if (!matchedKeys.length) return [];
+
+  const locationCounts = {};
+  const allContracts = [...(data.contracts || []), ...(data.legacyContracts || [])];
+  for (const contract of allContracts) {
+    for (const order of (Array.isArray(contract.haulingOrders) ? contract.haulingOrders : [])) {
+      if (!matchedKeys.includes(order.resource)) continue;
+      for (const locKey of (contract.locations || [])) {
+        const loc = data.locationPools?.[locKey];
+        if (!loc?.name) continue;
+        if (!locationCounts[locKey]) locationCounts[locKey] = { ...loc, count: 0 };
+        locationCounts[locKey].count++;
+      }
+    }
+  }
+
+  return Object.values(locationCounts)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6)
+    .map(loc => ({
+      name: loc.name,
+      system: loc.system || '?',
+      type: loc.type || '?',
+      contracts: loc.count,
+    }));
 }
 
-function getCraftInfo(itemName, quality = 750) {
-  const data = getData();
-  const kw = itemName.toLowerCase();
-  const item = (data.crafting_items || []).find(i =>
-    i.name?.toLowerCase().includes(kw)
-  );
-  if (!item) return null;
-  const materials = (item.components || []).map(comp => {
-    const factor = comp.quality_factor ?? 0.1;
-    const base = comp.base_bonus ?? 0;
-    const bonus = ((base + factor * quality) * 100).toFixed(2);
-    return {
-      section: comp.section_name || comp.name,
-      resource: comp.resource || comp.material,
-      scu: comp.scu_min || comp.scu,
-      qualityBonus: `+${bonus}%`,
-      stat: comp.affects_stat,
-    };
-  });
-  return {
-    name: item.name,
-    manufacturer: item.manufacturer,
-    craftTime: item.craft_time_seconds,
-    weight: item.weight_kg,
-    armorClass: item.armor_class,
-    materials,
-    stats: item.stats || {},
-  };
+// Crafting data is not present in this dataset.
+function getCraftInfo() {
+  return null;
 }
 
 function searchQuest(keyword, system = null) {
   const data = getData();
   const kw = keyword.toLowerCase();
-  return (data.missions || [])
+  const allContracts = [...(data.contracts || []), ...(data.legacyContracts || [])];
+
+  return allContracts
     .filter(m => {
+      const faction = resolveFaction(data, m.factionGuid).toLowerCase();
       const matchKeyword =
         m.title?.toLowerCase().includes(kw) ||
-        m.faction?.toLowerCase().includes(kw) ||
+        faction.includes(kw) ||
         m.description?.toLowerCase().includes(kw);
       const matchSystem = system
-        ? m.system?.toLowerCase() === system
+        ? (m.systems || []).some(s => s.toLowerCase() === system.toLowerCase())
         : true;
       return matchKeyword && matchSystem;
     })
     .map(m => ({
       title: m.title,
-      faction: m.faction,
-      system: m.system,
-      rewardUec: m.reward_uec,
-      repPerHour: m.rep_per_hour,
-      legality: m.legality,
-      blueprints: (m.blueprint_rewards || []).map(bp => bp.name),
+      faction: resolveFaction(data, m.factionGuid),
+      system: (m.systems || []).join(', '),
+      rewardUec: m.rewardUEC,
+      legality: m.illegal ? 'Illegal' : 'Legal',
+      blueprints: resolveBlueprintNames(data, m.blueprintRewards),
     }))
     .slice(0, 10);
 }
