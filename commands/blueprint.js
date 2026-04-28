@@ -26,49 +26,83 @@ module.exports = {
         embeds: [
           new EmbedBuilder()
             .setColor(0x5865F2)
-            .setDescription('🔍  ไม่พบ Blueprint สำหรับ `' + name + '`'),
+            .setTitle('🔍 Blueprint Results — "' + name + '"')
+            .setDescription('ไม่พบ Blueprint สำหรับ **' + name + '**'),
         ],
       });
     }
 
+    // Unique blueprint names across all results (deduplicated)
+    const allBps = [...new Set(results.flatMap(r => r.blueprints))];
+
+    // System string — unique systems across all results
+    const allSystems = [...new Set(
+      results.flatMap(r => r.system.split(', ')).filter(Boolean)
+    )];
+    const systemStr = allSystems.join(', ') || '—';
+
+    // Top result drives the 2×2 grid
+    const top = results[0];
     const shown = results.slice(0, 5);
 
-    // Mission name tags — one tag per result, shown as inline code chips
+    // Mission title tags — 🟠 illegal · 🟡 legal — all on one line
     const missionTags = shown
-      .map(m => '`' + m.title.slice(0, 28) + (m.title.length > 28 ? '…' : '') + '`')
-      .join('  ');
+      .map(m => (m.illegal ? '🟠' : '🟡') + ' ' + m.title)
+      .join('   ');
+
+    // Blueprint display — "·" separator, max 2 lines
+    const bpCap  = allBps.slice(0, 14);
+    const half   = Math.ceil(bpCap.length / 2);
+    const line1  = bpCap.slice(0, half).join(' · ');
+    const line2  = bpCap.slice(half).join(' · ');
+    const bpText = line2 ? line1 + '\n' + line2 : line1;
+    const bpMore = allBps.length > 14 ? '\n*+' + (allBps.length - 14) + ' more*' : '';
 
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
-      .setTitle('🔍  Blueprint — ' + name)
+      .setTitle('🔍 Blueprint Results — "' + name + '"')
       .setDescription(
-        'พบ **' + results.length + '** mission' + (results.length !== 1 ? 's' : '') +
-        (results.length > 5 ? '  ·  *แสดง 5 รายการ*' : '') +
-        '\n\n' + missionTags
+        'พบ **' + allBps.length + '** blueprints จาก **' + results.length +
+        '** missions ใน **' + systemStr + '** system'
+      )
+      .addFields(
+        // ── Missions header + tags ──────────────────────────────────────
+        {
+          name: 'MISSIONS ที่ให้ BLUEPRINT ' + name.toUpperCase(),
+          value: missionTags || '—',
+        },
+        // ── 2×2 grid row 1: FACTION | REWARD | spacer ──────────────────
+        {
+          name:   'FACTION',
+          value:  top.faction || '—',
+          inline: true,
+        },
+        {
+          name:   'REWARD',
+          value:  (top.rewardUec ?? 0).toLocaleString() + ' aUEC',
+          inline: true,
+        },
+        { name: '​', value: '​', inline: true },
+        // ── 2×2 grid row 2: REP/H | DROP RATE | spacer ─────────────────
+        {
+          name:   'REP/H',
+          value:  '—',
+          inline: true,
+        },
+        {
+          name:   'DROP RATE',
+          value:  top.dropRate + '%',
+          inline: true,
+        },
+        { name: '​', value: '​', inline: true },
+        // ── Blueprint list ──────────────────────────────────────────────
+        {
+          name:  'BLUEPRINTS ที่ได้รับ',
+          value: bpText + bpMore || '—',
+        },
       )
       .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
-
-    for (const m of shown) {
-      const legalTag  = m.illegal ? '`🔴 Illegal`' : '`🟢 Legal`';
-      const rewardStr = (m.rewardUec ?? 0).toLocaleString();
-
-      // 2×2 grid: faction / system (row 1), reward / type (row 2)
-      const grid =
-        '`🏴 ' + m.faction + '`  `🌌 ' + (m.system || '—') + '`\n' +
-        '`💰 ' + rewardStr + ' aUEC`  `⚔️ ' + m.missionType + '`  ' + legalTag;
-
-      // Blueprint bullet list
-      const bullets = m.blueprints.length
-        ? m.blueprints.slice(0, 6).map(b => '• ' + b).join('\n') +
-          (m.blueprints.length > 6 ? '\n*+' + (m.blueprints.length - 6) + ' more*' : '')
-        : '—';
-
-      embed.addFields({
-        name: '📌  ' + m.title,
-        value: grid + '\n\n' + bullets,
-      });
-    }
 
     await interaction.editReply({ embeds: [embed] });
   },

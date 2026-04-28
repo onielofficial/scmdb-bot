@@ -37,6 +37,11 @@ function searchBlueprint(keyword) {
     const allBpNames = resolveBlueprintNames(data, contract.blueprintRewards);
     const matched = allBpNames.filter(name => name.toLowerCase().includes(kw));
     if (matched.length > 0) {
+      // Find the pool that contains the matched blueprints to get the real drop chance
+      const matchingReward = contract.blueprintRewards.find(br => {
+        const pool = data.blueprintPools?.[br.blueprintPool];
+        return (pool?.blueprints || []).some(bp => matched.includes(bp.name));
+      });
       results.push({
         title: contract.title,
         faction: resolveFaction(data, contract.factionGuid),
@@ -45,6 +50,7 @@ function searchBlueprint(keyword) {
         system: (contract.systems || []).join(', '),
         missionType: contract.missionType || '?',
         illegal: !!contract.illegal,
+        dropRate: Math.round((matchingReward?.chance ?? 1) * 100),
       });
     }
   }
