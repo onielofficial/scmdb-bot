@@ -120,12 +120,16 @@ function getCraftInfo(itemName) {
       armorClass: ch.armorClass || '?',
     }));
 
+  const matchedOutput = outputs.find(o => o.name?.toLowerCase().includes(kw));
+  const itemName = matchedOutput?.name || outputs[0]?.name || contract.title;
+
   const destinations = (contract.destinations || [])
     .map(key => data.locationPools?.[key]?.name)
     .filter(Boolean);
 
   return {
     title: contract.title,
+    itemName,
     description: contract.description,
     materials,
     outputs,
