@@ -1,6 +1,14 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { searchBlueprint } = require('../services/scmdb');
 
+const TECH_PREFIX_RE  = /^(?:MissionGiver|Contract|PU|SCM|GV|TDD|CRU|HUR|MIC|ARC|NB|STT)_/i;
+const COLON_PREFIX_RE = /^[^:]+:\s*/;
+
+function cleanTitle(title) {
+  let t = title.replace(TECH_PREFIX_RE, '').replace(COLON_PREFIX_RE, '');
+  return t.replace(/_/g, ' ').trim();
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('blueprint')
@@ -32,34 +40,29 @@ module.exports = {
       });
     }
 
-    const allBps = [...new Set(results.flatMap(r => r.blueprints))];
+    const allBps     = [...new Set(results.flatMap(r => r.blueprints))];
     const allSystems = [...new Set(results.flatMap(r => r.system.split(', ')).filter(Boolean))];
-    const systemStr = allSystems.join(', ') || '—';
-    const top = results[0];
-    const shown = results.slice(0, 5);
+    const systemStr  = allSystems.join(', ') || '—';
+    const top        = results[0];
+    const shown      = results.slice(0, 5);
 
-    // Field 1: one backtick chip per line
-    const PREFIX_RE = /^[^:]+:\s*/;
-    const missionChips = shown
-      .map(m => '`' + m.title.replace(PREFIX_RE, '') + '`')
-      .join('\n');
+    // Field 1: bullet list of mission names, prefixes stripped
+    const missionList = shown
+      .map(m => '• ' + cleanTitle(m.title))
+      .join('\n') || '—';
 
-    // Field 2: 2-column code block with separator between rows
+    // Field 2: 3-column code block — FACTION | REWARD | DROP RATE
     const factionVal = top.faction || '—';
     const rewardVal  = (top.rewardUec ?? 0).toLocaleString() + ' aUEC';
-    const repVal     = '—';
     const dropVal    = top.dropRate + '%';
-    const COL        = Math.max('FACTION'.length, factionVal.length, 'REP/H'.length, repVal.length) + 2;
-    const SEP        = '─'.repeat(COL + Math.max('REWARD'.length, rewardVal.length));
-    const gridBlock  = '```\n'
-      + 'FACTION'.padEnd(COL) + 'REWARD\n'
-      + factionVal.padEnd(COL) + rewardVal + '\n'
-      + SEP + '\n'
-      + 'REP/H'.padEnd(COL)   + 'DROP RATE\n'
-      + repVal.padEnd(COL)    + dropVal + '\n'
+    const C1 = Math.max('FACTION'.length, factionVal.length) + 2;
+    const C2 = Math.max('REWARD'.length,  rewardVal.length)  + 2;
+    const gridBlock = '```\n'
+      + 'FACTION'.padEnd(C1) + 'REWARD'.padEnd(C2) + 'DROP RATE\n'
+      + factionVal.padEnd(C1) + rewardVal.padEnd(C2) + dropVal + '\n'
       + '```';
 
-    // Field 3: one bullet per blueprint
+    // Field 3: bullet list of blueprints
     const bpText = allBps.map(bp => '• ' + bp).join('\n') || '—';
 
     const embed = new EmbedBuilder()
@@ -72,7 +75,7 @@ module.exports = {
       .addFields(
         {
           name:  'MISSIONS ที่ให้ BLUEPRINT ' + name.toUpperCase(),
-          value: missionChips || '—',
+          value: missionList,
         },
         {
           name:  '** **',
