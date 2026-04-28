@@ -26,79 +26,59 @@ module.exports = {
         embeds: [
           new EmbedBuilder()
             .setColor(0x5865F2)
-            .setTitle('🔍 Blueprint Results — "' + name + '"')
+            .setTitle('🔍 Blueprint Results — ' + name)
             .setDescription('ไม่พบ Blueprint สำหรับ **' + name + '**'),
         ],
       });
     }
 
-    // Unique blueprint names across all results (deduplicated)
     const allBps = [...new Set(results.flatMap(r => r.blueprints))];
-
-    // System string — unique systems across all results
-    const allSystems = [...new Set(
-      results.flatMap(r => r.system.split(', ')).filter(Boolean)
-    )];
+    const allSystems = [...new Set(results.flatMap(r => r.system.split(', ')).filter(Boolean))];
     const systemStr = allSystems.join(', ') || '—';
-
-    // Top result drives the 2×2 grid
     const top = results[0];
     const shown = results.slice(0, 5);
 
-    // Mission title tags — 🟠 illegal · 🟡 legal — all on one line
-    const missionTags = shown
-      .map(m => (m.illegal ? '🟠' : '🟡') + ' ' + m.title)
-      .join('   ');
+    // Field 1: backtick chips with level-contract prefixes stripped, all on one line
+    const PREFIX_RE = /^(?:Orange Level Contract|Yellow Level Contract):\s*/i;
+    const missionChips = shown
+      .map(m => '`' + m.title.replace(PREFIX_RE, '') + '`')
+      .join(' ');
 
-    // Blueprint display — "·" separator, max 2 lines
-    const bpCap  = allBps.slice(0, 14);
-    const half   = Math.ceil(bpCap.length / 2);
-    const line1  = bpCap.slice(0, half).join(' · ');
-    const line2  = bpCap.slice(half).join(' · ');
-    const bpText = line2 ? line1 + '\n' + line2 : line1;
-    const bpMore = allBps.length > 14 ? '\n*+' + (allBps.length - 14) + ' more*' : '';
+    // Field 2: 2-column code block — FACTION/REWARD row 1, REP/H/DROP RATE row 2
+    const factionVal = top.faction || '—';
+    const rewardVal  = (top.rewardUec ?? 0).toLocaleString() + ' aUEC';
+    const repVal     = '—';
+    const dropVal    = top.dropRate + '%';
+    const COL        = Math.max('FACTION'.length, factionVal.length, 'REP/H'.length, repVal.length) + 2;
+    const gridBlock  = '```\n'
+      + 'FACTION'.padEnd(COL) + 'REWARD\n'
+      + factionVal.padEnd(COL) + rewardVal + '\n'
+      + 'REP/H'.padEnd(COL)   + 'DROP RATE\n'
+      + repVal.padEnd(COL)    + dropVal + '\n'
+      + '```';
+
+    // Field 3: all blueprint names joined by · separator
+    const bpText = allBps.join(' · ') || '—';
 
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
-      .setTitle('🔍 Blueprint Results — "' + name + '"')
+      .setTitle('🔍 Blueprint Results — ' + name)
       .setDescription(
         'พบ **' + allBps.length + '** blueprints จาก **' + results.length +
         '** missions ใน **' + systemStr + '** system'
       )
       .addFields(
-        // ── Missions header + tags ──────────────────────────────────────
         {
-          name: 'MISSIONS ที่ให้ BLUEPRINT ' + name.toUpperCase(),
-          value: missionTags || '—',
-        },
-        // ── 2×2 grid row 1: FACTION | REWARD | spacer ──────────────────
-        {
-          name:   'FACTION',
-          value:  top.faction || '—',
-          inline: true,
+          name:  'MISSIONS ที่ให้ BLUEPRINT ' + name.toUpperCase(),
+          value: missionChips || '—',
         },
         {
-          name:   'REWARD',
-          value:  (top.rewardUec ?? 0).toLocaleString() + ' aUEC',
-          inline: true,
+          name:  '** **',
+          value: gridBlock,
         },
-        { name: '​', value: '​', inline: true },
-        // ── 2×2 grid row 2: REP/H | DROP RATE | spacer ─────────────────
-        {
-          name:   'REP/H',
-          value:  '—',
-          inline: true,
-        },
-        {
-          name:   'DROP RATE',
-          value:  top.dropRate + '%',
-          inline: true,
-        },
-        { name: '​', value: '​', inline: true },
-        // ── Blueprint list ──────────────────────────────────────────────
         {
           name:  'BLUEPRINTS ที่ได้รับ',
-          value: bpText + bpMore || '—',
+          value: bpText,
         },
       )
       .setFooter({ text: 'SCMDB · scmdb.net' })
