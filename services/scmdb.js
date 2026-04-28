@@ -121,7 +121,7 @@ function getCraftInfo(itemName) {
     }));
 
   const matchedOutput = outputs.find(o => o.name?.toLowerCase().includes(kw));
-  const itemName = matchedOutput?.name || outputs[0]?.name || contract.title;
+  const displayName = matchedOutput?.name || outputs[0]?.name || contract.title;
 
   const destinations = (contract.destinations || [])
     .map(key => data.locationPools?.[key]?.name)
@@ -129,7 +129,7 @@ function getCraftInfo(itemName) {
 
   return {
     title: contract.title,
-    itemName,
+    itemName: displayName,
     description: contract.description,
     materials,
     outputs,
