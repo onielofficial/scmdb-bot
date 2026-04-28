@@ -1,6 +1,15 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { findResource } = require('../services/scmdb');
 
+const LOC_EMOJI = {
+  Star: '⭐', Planet: '🪐', Moon: '🌙',
+  Outpost: '📡', Station: '🛸', Destination: '📍',
+};
+
+function locEmoji(type) {
+  return LOC_EMOJI[type] ?? '📍';
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('resource')
@@ -20,22 +29,41 @@ module.exports = {
     } catch (e) {
       return interaction.editReply(`❌ ${e.message}`);
     }
+
     if (!results.length) {
-      return interaction.editReply(`ไม่พบแหล่งแร่สำหรับ **${material}**`);
+      return interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0x2B2D31)
+            .setDescription(`> 🪨  ไม่พบ Resource สำหรับ \`${material}\``)
+        ],
+      });
     }
+
+    const maxContracts = Math.max(...results.map(r => r.contracts));
+
     const embed = new EmbedBuilder()
       .setColor(0xFAA61A)
-      .setTitle(`📡 Resource — "${material}"`)
-      .setDescription(`พบ **${results.length} locations**`)
-      .setFooter({ text: 'ข้อมูลจาก scmdb.net' })
+      .setTitle(`🪨  Resource — \`${material}\``)
+      .setDescription(
+        `พบ **${results.length}** location${results.length !== 1 ? 's' : ''} ` +
+        `ที่มี hauling contract สำหรับ resource นี้`
+      )
+      .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
+
     for (const loc of results) {
+      const barLen = 8;
+      const filled = Math.max(1, Math.round((loc.contracts / maxContracts) * barLen));
+      const bar = `\`${'█'.repeat(filled)}${'░'.repeat(barLen - filled)}\``;
+
       embed.addFields({
-        name: `${loc.name} (${loc.system || '?'})`,
-        value: `Type: **${loc.type || '?'}** · Contracts: **${loc.contracts}**`,
+        name: `${locEmoji(loc.type)}  ${loc.name}`,
+        value: `🌌 **${loc.system}**  ·  ${loc.type}\n${bar}  **${loc.contracts}** contracts`,
         inline: true,
       });
     }
+
     await interaction.editReply({ embeds: [embed] });
   },
 };

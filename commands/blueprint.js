@@ -20,26 +20,44 @@ module.exports = {
     } catch (e) {
       return interaction.editReply(`❌ ${e.message}`);
     }
+
     if (!results.length) {
-      return interaction.editReply(`ไม่พบ Blueprint สำหรับ **${name}**`);
+      return interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0x2B2D31)
+            .setDescription(`> 🔍  ไม่พบ Blueprint สำหรับ \`${name}\``)
+        ],
+      });
     }
+
+    const shown = results.slice(0, 5);
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
-      .setTitle(`🔍 Blueprint — "${name}"`)
-      .setDescription(`พบ **${results.length} missions** ที่ให้ Blueprint นี้`)
-      .setFooter({ text: 'ข้อมูลจาก scmdb.net' })
+      .setTitle(`🔍  Blueprint — \`${name}\``)
+      .setDescription(
+        `พบ **${results.length}** mission${results.length !== 1 ? 's' : ''} ที่ drop blueprint นี้` +
+        (results.length > 5 ? '  ·  *แสดงแค่ 5 รายการ*' : '')
+      )
+      .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
-    for (const m of results.slice(0, 5)) {
+
+    for (const m of shown) {
+      const legal = m.illegal ? '🔴 Illegal' : '🟢 Legal';
+      const bpNames = m.blueprints.slice(0, 4).map(b => `\`${b}\``).join('\n');
+      const overflow = m.blueprints.length > 4 ? `\n*…+${m.blueprints.length - 4} more*` : '';
+
       embed.addFields({
-        name: m.title,
+        name: `📌  ${m.title}`,
         value: [
-          `Faction: **${m.faction || '?'}**`,
-          `System: **${m.system || '?'}**`,
-          `Reward: **${m.rewardUec?.toLocaleString() || '?'} aUEC**`,
-          `Blueprints: ${m.blueprints.join(', ')}`,
+          `\`${m.missionType}\`  ·  ${legal}`,
+          `🏴  **${m.faction}**   🌌  **${m.system || '—'}**`,
+          `💰  **${(m.rewardUec ?? 0).toLocaleString()} aUEC**`,
+          `\n📋\n${bpNames}${overflow}`,
         ].join('\n'),
       });
     }
+
     await interaction.editReply({ embeds: [embed] });
   },
 };

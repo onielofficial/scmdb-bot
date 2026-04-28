@@ -43,6 +43,8 @@ function searchBlueprint(keyword) {
         rewardUec: contract.rewardUEC,
         blueprints: matched,
         system: (contract.systems || []).join(', '),
+        missionType: contract.missionType || '?',
+        illegal: !!contract.illegal,
       });
     }
   }
@@ -148,7 +150,8 @@ function searchQuest(keyword, system = null) {
       faction: resolveFaction(data, m.factionGuid),
       system: (m.systems || []).join(', '),
       rewardUec: m.rewardUEC,
-      legality: m.illegal ? 'Illegal' : 'Legal',
+      illegal: !!m.illegal,
+      missionType: m.missionType || '?',
       blueprints: resolveBlueprintNames(data, m.blueprintRewards),
     }))
     .slice(0, 10);

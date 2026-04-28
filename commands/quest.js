@@ -31,27 +31,47 @@ module.exports = {
     } catch (e) {
       return interaction.editReply(`❌ ${e.message}`);
     }
+
     if (!results.length) {
-      return interaction.editReply(`ไม่พบ Quest สำหรับ **${name}**`);
+      return interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0x2B2D31)
+            .setDescription(`> 🎯  ไม่พบ Quest สำหรับ \`${name}\``)
+        ],
+      });
     }
+
+    const shown = results.slice(0, 5);
     const embed = new EmbedBuilder()
       .setColor(0xED4245)
-      .setTitle(`🎯 Quest — "${name}"`)
-      .setDescription(`พบ **${results.length} missions**`)
-      .setFooter({ text: 'ข้อมูลจาก scmdb.net' })
+      .setTitle(`🎯  Quest — \`${name}\``)
+      .setDescription(
+        `พบ **${results.length}** mission${results.length !== 1 ? 's' : ''}` +
+        (system ? `  ·  🌌 ${system.charAt(0).toUpperCase() + system.slice(1)}` : '') +
+        (results.length > 5 ? '  ·  *แสดงแค่ 5 รายการ*' : '')
+      )
+      .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
-    for (const q of results.slice(0, 5)) {
+
+    for (const q of shown) {
+      const legalIcon = q.illegal ? '🔴' : '🟢';
+      const reward = q.rewardUec ? `**${q.rewardUec.toLocaleString()} aUEC**` : '**—**';
+      const bpLine = q.blueprints.length
+        ? `\n📋  ${q.blueprints.slice(0, 2).map(b => `\`${b}\``).join('  ·  ')}` +
+          (q.blueprints.length > 2 ? `  *+${q.blueprints.length - 2}*` : '')
+        : '';
+
       embed.addFields({
-        name: q.title,
+        name: `${legalIcon}  ${q.title}`,
         value: [
-          `Faction: **${q.faction || '?'}**`,
-          `System: **${q.system || '?'}**`,
-          `Reward: **${q.rewardUec?.toLocaleString() || '?'} aUEC**`,
-          `Legality: **${q.legality || '?'}**`,
-          q.blueprints?.length ? `Blueprints: ${q.blueprints.join(', ')}` : '',
+          `\`${q.missionType}\`  ·  🏴  **${q.faction}**`,
+          `🌌  **${q.system || '—'}**   💰  ${reward}`,
+          bpLine,
         ].filter(Boolean).join('\n'),
       });
     }
+
     await interaction.editReply({ embeds: [embed] });
   },
 };
