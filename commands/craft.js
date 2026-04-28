@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getCraftInfo, getCraftingItem } = require('../services/scmdb');
+const { getCraftInfo, getCraftingItem, getCraftingBlueprint } = require('../services/scmdb');
 
 function qtyBar(amount, max, len = 10) {
   const filled = Math.max(1, Math.round((amount / max) * len));
@@ -33,15 +33,16 @@ module.exports = {
     const quality = interaction.options.getInteger('quality') ?? 500;
     const factor  = 0.9 + (quality / 1000 * 0.2);
 
-    let craftResult, itemData;
+    let craftResult, itemData, blueprintData;
     try {
-      craftResult = getCraftInfo(name);
-      itemData    = getCraftingItem(name);
+      craftResult   = getCraftInfo(name);
+      itemData      = getCraftingItem(name);
+      blueprintData = getCraftingBlueprint(name);
     } catch (e) {
       return interaction.editReply(`❌ ${e.message}`);
     }
 
-    if (!craftResult && !itemData) {
+    if (!craftResult && !itemData && !blueprintData) {
       return interaction.editReply({
         embeds: [
           new EmbedBuilder()
@@ -51,21 +52,29 @@ module.exports = {
       });
     }
 
-    const itemName     = itemData?.name || craftResult?.itemName || name;
+    const itemName     = blueprintData?.productName || itemData?.name || craftResult?.itemName || name;
     const manufacturer = itemData?.manufacturer || '—';
     const classLabel   = itemData?.itemType || '—';
     const isArmor      = itemData?.itemType === 'armor';
+    const craftTime    = blueprintData ? blueprintData.tiers[0].craftTimeSeconds + 's' : 'N/A';
 
-    // Materials from merged.json
+    // Materials: prefer blueprint slots, fall back to merged.json
     let matLines = '—';
-    if (craftResult?.materials?.length) {
-      const maxAmt = Math.max(...craftResult.materials.map(m => m.amount), 1);
-      matLines = craftResult.materials
-        .map(m =>
-          '🔧 **' + m.name + '**    ' + m.amount + ' SCU    — · —\n' +
-          qtyBar(m.amount, maxAmt)
+    const slots = blueprintData?.tiers[0].slots ?? [];
+    if (slots.length) {
+      const maxQty = Math.max(...slots.flatMap(s => s.options.map(o => o.quantity)), 1);
+      matLines = slots.flatMap(s =>
+        s.options.map(o =>
+          '🔧 **' + o.resourceName + '** × ' + o.quantity + ' SCU' +
+          (o.minQuality > 0 ? ' (min quality: ' + o.minQuality + ')' : '') + '\n' +
+          qtyBar(o.quantity, maxQty)
         )
-        .join('\n');
+      ).join('\n');
+    } else if (craftResult?.materials?.length) {
+      const maxAmt = Math.max(...craftResult.materials.map(m => m.amount), 1);
+      matLines = craftResult.materials.map(m =>
+        '🔧 **' + m.name + '** × ' + m.amount + ' SCU\n' + qtyBar(m.amount, maxAmt)
+      ).join('\n');
     }
 
     // Damage resistance stats with quality factor (armor only)
@@ -78,11 +87,11 @@ module.exports = {
       };
       statsValue =
         'Quality: **' + quality + '**/1000 · Factor: ×' + factor.toFixed(3) + '\n' +
-        'Physical: '    + stat(dr.physical?.multiplier)    + '\n' +
-        'Energy: '      + stat(dr.energy?.multiplier)      + '\n' +
-        'Distortion: '  + stat(dr.distortion?.multiplier)  + '\n' +
-        'Thermal: '     + stat(dr.thermal?.multiplier)     + '\n' +
-        'Stun: '        + stat(dr.stun?.multiplier);
+        'Physical: '   + stat(dr.physical?.multiplier)   + '\n' +
+        'Energy: '     + stat(dr.energy?.multiplier)     + '\n' +
+        'Distortion: ' + stat(dr.distortion?.multiplier) + '\n' +
+        'Thermal: '    + stat(dr.thermal?.multiplier)    + '\n' +
+        'Stun: '       + stat(dr.stun?.multiplier);
     }
 
     // Temperature range (armor only)
@@ -98,7 +107,7 @@ module.exports = {
       .addFields(
         { name: 'CLASS',        value: classLabel,   inline: true },
         { name: 'MANUFACTURER', value: manufacturer, inline: true },
-        { name: 'CRAFT TIME',   value: 'N/A',        inline: true },
+        { name: 'CRAFT TIME',   value: craftTime,    inline: true },
         { name: 'MATERIALS REQUIRED (QUALITY ' + quality + ')', value: matLines },
         { name: 'STATS ที่ได้รับ (Q' + quality + ')', value: statsValue },
         { name: 'TEMPERATURE RESISTANCE', value: tempValue },

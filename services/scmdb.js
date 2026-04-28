@@ -3,8 +3,10 @@ const path = require('path');
 
 const DATA_PATH         = path.join(__dirname, '../data/merged.json');
 const CRAFT_ITEMS_PATH  = path.join(__dirname, '../data/crafting_items.json');
+const BLUEPRINTS_PATH   = path.join(__dirname, '../data/crafting_blueprints.json');
 let _cache       = null;
 let _craftCache  = null;
+let _bpCache     = null;
 
 function getData() {
   if (_cache) return _cache;
@@ -22,6 +24,15 @@ function getCraftItemsData() {
   }
   _craftCache = JSON.parse(fs.readFileSync(CRAFT_ITEMS_PATH, 'utf8'));
   return _craftCache;
+}
+
+function getBlueprintsData() {
+  if (_bpCache) return _bpCache;
+  if (!fs.existsSync(BLUEPRINTS_PATH)) {
+    throw new Error('ไม่พบไฟล์ crafting_blueprints.json');
+  }
+  _bpCache = JSON.parse(fs.readFileSync(BLUEPRINTS_PATH, 'utf8'));
+  return _bpCache;
 }
 
 function resolveFaction(data, factionGuid) {
@@ -197,4 +208,11 @@ function getCraftingItem(keyword) {
   };
 }
 
-module.exports = { getData, searchBlueprint, findResource, getCraftInfo, getCraftingItem, searchQuest };
+function getCraftingBlueprint(keyword) {
+  const data = getBlueprintsData();
+  const kw = keyword.toLowerCase();
+  const bp = data.blueprints.find(b => b.productName?.toLowerCase().includes(kw));
+  return bp ?? null;
+}
+
+module.exports = { getData, searchBlueprint, findResource, getCraftInfo, getCraftingItem, getCraftingBlueprint, searchQuest };
