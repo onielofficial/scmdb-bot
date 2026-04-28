@@ -39,7 +39,7 @@ module.exports = {
     const shown = results.slice(0, 5);
 
     // Field 1: backtick chips with level-contract prefixes stripped, all on one line
-    const PREFIX_RE = /^(?:Orange Level Contract|Yellow Level Contract):\s*/i;
+    const PREFIX_RE = /^[^:]+:\s*/;
     const missionChips = shown
       .map(m => '`' + m.title.replace(PREFIX_RE, '') + '`')
       .join(' ');
