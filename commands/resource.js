@@ -34,35 +34,55 @@ module.exports = {
       return interaction.editReply({
         embeds: [
           new EmbedBuilder()
-            .setColor(0x2B2D31)
-            .setDescription(`> 🪨  ไม่พบ Resource สำหรับ \`${material}\``)
+            .setColor(0xFAA61A)
+            .setDescription('🪨  ไม่พบ Resource สำหรับ `' + material + '`'),
         ],
       });
     }
 
-    const maxContracts = Math.max(...results.map(r => r.contracts));
+    const total   = results.reduce((s, r) => s + r.contracts, 0);
+    const topPct  = Math.round((results[0].contracts / total) * 100);
+
+    // Top 4 location inline tags shown in description
+    const locTags = results.slice(0, 4)
+      .map(r => '`' + locEmoji(r.type) + ' ' + r.name + '`')
+      .join('  ');
+
+    // Unique systems and types for grid boxes
+    const systems = [...new Set(results.map(r => r.system).filter(s => s && s !== '?'))];
+    const types   = [...new Set(results.map(r => r.type).filter(Boolean))];
+
+    // Ranked location list with medal indicators
+    const MEDALS  = ['🥇', '🥈', '🥉'];
+    const ranked  = results.map((r, i) =>
+      (MEDALS[i] ?? '▸') + '  **' + r.name + '**  ·  ' + r.contracts + ' contracts'
+    ).join('\n');
 
     const embed = new EmbedBuilder()
       .setColor(0xFAA61A)
-      .setTitle(`🪨  Resource — \`${material}\``)
+      .setTitle('🪨  Resource — ' + material)
       .setDescription(
-        `พบ **${results.length}** location${results.length !== 1 ? 's' : ''} ` +
-        `ที่มี hauling contract สำหรับ resource นี้`
+        '**' + total + '** total contracts  ·  Best match: **' + topPct + '%** at *' + results[0].name + '*\n\n' +
+        locTags
+      )
+      .addFields(
+        {
+          name: '🌌  Systems',
+          value: systems.map(s => '`' + s + '`').join('  ') || '—',
+          inline: true,
+        },
+        {
+          name: '📍  Location Types',
+          value: types.map(t => '`' + locEmoji(t) + ' ' + t + '`').join('\n') || '—',
+          inline: true,
+        },
+        {
+          name: '📊  Ranked Locations',
+          value: ranked,
+        },
       )
       .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
-
-    for (const loc of results) {
-      const barLen = 8;
-      const filled = Math.max(1, Math.round((loc.contracts / maxContracts) * barLen));
-      const bar = `\`${'█'.repeat(filled)}${'░'.repeat(barLen - filled)}\``;
-
-      embed.addFields({
-        name: `${locEmoji(loc.type)}  ${loc.name}`,
-        value: `🌌 **${loc.system}**  ·  ${loc.type}\n${bar}  **${loc.contracts}** contracts`,
-        inline: true,
-      });
-    }
 
     await interaction.editReply({ embeds: [embed] });
   },

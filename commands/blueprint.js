@@ -25,36 +25,48 @@ module.exports = {
       return interaction.editReply({
         embeds: [
           new EmbedBuilder()
-            .setColor(0x2B2D31)
-            .setDescription(`> 🔍  ไม่พบ Blueprint สำหรับ \`${name}\``)
+            .setColor(0x5865F2)
+            .setDescription('🔍  ไม่พบ Blueprint สำหรับ `' + name + '`'),
         ],
       });
     }
 
     const shown = results.slice(0, 5);
+
+    // Mission name tags — one tag per result, shown as inline code chips
+    const missionTags = shown
+      .map(m => '`' + m.title.slice(0, 28) + (m.title.length > 28 ? '…' : '') + '`')
+      .join('  ');
+
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
-      .setTitle(`🔍  Blueprint — \`${name}\``)
+      .setTitle('🔍  Blueprint — ' + name)
       .setDescription(
-        `พบ **${results.length}** mission${results.length !== 1 ? 's' : ''} ที่ drop blueprint นี้` +
-        (results.length > 5 ? '  ·  *แสดงแค่ 5 รายการ*' : '')
+        'พบ **' + results.length + '** mission' + (results.length !== 1 ? 's' : '') +
+        (results.length > 5 ? '  ·  *แสดง 5 รายการ*' : '') +
+        '\n\n' + missionTags
       )
       .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
 
     for (const m of shown) {
-      const legal = m.illegal ? '🔴 Illegal' : '🟢 Legal';
-      const bpNames = m.blueprints.slice(0, 4).map(b => `\`${b}\``).join('\n');
-      const overflow = m.blueprints.length > 4 ? `\n*…+${m.blueprints.length - 4} more*` : '';
+      const legalTag  = m.illegal ? '`🔴 Illegal`' : '`🟢 Legal`';
+      const rewardStr = (m.rewardUec ?? 0).toLocaleString();
+
+      // 2×2 grid: faction / system (row 1), reward / type (row 2)
+      const grid =
+        '`🏴 ' + m.faction + '`  `🌌 ' + (m.system || '—') + '`\n' +
+        '`💰 ' + rewardStr + ' aUEC`  `⚔️ ' + m.missionType + '`  ' + legalTag;
+
+      // Blueprint bullet list
+      const bullets = m.blueprints.length
+        ? m.blueprints.slice(0, 6).map(b => '• ' + b).join('\n') +
+          (m.blueprints.length > 6 ? '\n*+' + (m.blueprints.length - 6) + ' more*' : '')
+        : '—';
 
       embed.addFields({
-        name: `📌  ${m.title}`,
-        value: [
-          `\`${m.missionType}\`  ·  ${legal}`,
-          `🏴  **${m.faction}**   🌌  **${m.system || '—'}**`,
-          `💰  **${(m.rewardUec ?? 0).toLocaleString()} aUEC**`,
-          `\n📋\n${bpNames}${overflow}`,
-        ].join('\n'),
+        name: '📌  ' + m.title,
+        value: grid + '\n\n' + bullets,
       });
     }
 

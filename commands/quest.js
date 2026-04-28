@@ -16,14 +16,14 @@ module.exports = {
         .setRequired(false)
         .addChoices(
           { name: 'Stanton', value: 'stanton' },
-          { name: 'Pyro', value: 'pyro' },
-          { name: 'Nyx', value: 'nyx' },
+          { name: 'Pyro',    value: 'pyro'    },
+          { name: 'Nyx',     value: 'nyx'     },
         )
     ),
 
   async execute(interaction) {
     await interaction.deferReply();
-    const name = interaction.options.getString('name');
+    const name   = interaction.options.getString('name');
     const system = interaction.options.getString('system');
     let results;
     try {
@@ -36,8 +36,8 @@ module.exports = {
       return interaction.editReply({
         embeds: [
           new EmbedBuilder()
-            .setColor(0x2B2D31)
-            .setDescription(`> 🎯  ไม่พบ Quest สำหรับ \`${name}\``)
+            .setColor(0xED4245)
+            .setDescription('🎯  ไม่พบ Quest สำหรับ `' + name + '`'),
         ],
       });
     }
@@ -45,30 +45,38 @@ module.exports = {
     const shown = results.slice(0, 5);
     const embed = new EmbedBuilder()
       .setColor(0xED4245)
-      .setTitle(`🎯  Quest — \`${name}\``)
+      .setTitle('🎯  Quest — ' + name)
       .setDescription(
-        `พบ **${results.length}** mission${results.length !== 1 ? 's' : ''}` +
-        (system ? `  ·  🌌 ${system.charAt(0).toUpperCase() + system.slice(1)}` : '') +
-        (results.length > 5 ? '  ·  *แสดงแค่ 5 รายการ*' : '')
+        'พบ **' + results.length + '** mission' + (results.length !== 1 ? 's' : '') +
+        (system ? '  ·  🌌 ' + system.charAt(0).toUpperCase() + system.slice(1) : '') +
+        (results.length > 5 ? '  ·  *แสดง 5 รายการ*' : '')
       )
       .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
 
     for (const q of shown) {
       const legalIcon = q.illegal ? '🔴' : '🟢';
-      const reward = q.rewardUec ? `**${q.rewardUec.toLocaleString()} aUEC**` : '**—**';
-      const bpLine = q.blueprints.length
-        ? `\n📋  ${q.blueprints.slice(0, 2).map(b => `\`${b}\``).join('  ·  ')}` +
-          (q.blueprints.length > 2 ? `  *+${q.blueprints.length - 2}*` : '')
+      const legalStr  = q.illegal ? 'Illegal' : 'Legal';
+      const rewardStr = q.rewardUec ? q.rewardUec.toLocaleString() + ' aUEC' : '—';
+
+      // Row 1: mission type + system as tags
+      const tagRow = '`⚔️ ' + q.missionType + '`  `🌌 ' + (q.system || '—') + '`';
+
+      // Row 2: faction / reward / legality grid boxes
+      const gridRow =
+        '`🏴 ' + q.faction + '`  ' +
+        '`💰 ' + rewardStr + '`  ' +
+        '`' + legalIcon + ' ' + legalStr + '`';
+
+      // Blueprint bullet list
+      const bpBullets = q.blueprints.length
+        ? '\n\n' + q.blueprints.slice(0, 4).map(b => '• ' + b).join('\n') +
+          (q.blueprints.length > 4 ? '\n*+' + (q.blueprints.length - 4) + ' more*' : '')
         : '';
 
       embed.addFields({
-        name: `${legalIcon}  ${q.title}`,
-        value: [
-          `\`${q.missionType}\`  ·  🏴  **${q.faction}**`,
-          `🌌  **${q.system || '—'}**   💰  ${reward}`,
-          bpLine,
-        ].filter(Boolean).join('\n'),
+        name: legalIcon + '  ' + q.title,
+        value: tagRow + '\n\n' + gridRow + bpBullets,
       });
     }
 

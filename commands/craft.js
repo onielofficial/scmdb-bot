@@ -1,16 +1,13 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getCraftInfo } = require('../services/scmdb');
 
-const SLOT_EMOJI = {
-  helmet: '🪖', arms: '🦾', chest: '🥋', legs: '🦵', backpack: '🎒',
-};
-const CLASS_BADGE = {
-  light: '🔵 Light', medium: '🟡 Medium', heavy: '🔴 Heavy',
-};
+const SLOT_EMOJI  = { helmet: '🪖', arms: '🦾', chest: '🥋', legs: '🦵', backpack: '🎒' };
+const CLASS_LABEL = { light: '🔵 Light', medium: '🟡 Medium', heavy: '🔴 Heavy' };
 
-function materialBar(amount, max, len = 10) {
+// Relative quantity bar (shows each material's share vs the highest-qty ingredient)
+function qtyBar(amount, max, len = 8) {
   const filled = Math.max(1, Math.round((amount / max) * len));
-  return `\`${'█'.repeat(filled)}${'░'.repeat(len - filled)}\``;
+  return '`' + '█'.repeat(filled) + '░'.repeat(len - filled) + '`';
 }
 
 module.exports = {
@@ -36,51 +33,56 @@ module.exports = {
       return interaction.editReply({
         embeds: [
           new EmbedBuilder()
-            .setColor(0x2B2D31)
-            .setDescription(`> ⚒  ไม่พบ Crafting Recipe สำหรับ \`${name}\``)
+            .setColor(0x1ABC9C)
+            .setDescription('⚒  ไม่พบ Crafting Recipe สำหรับ `' + name + '`'),
         ],
       });
     }
 
-    const maxAmt = Math.max(...result.materials.map(m => m.amount), 1);
-    const materialsText = result.materials
-      .map(m => `${materialBar(m.amount, maxAmt)}  **${m.name}**  ×${m.amount}`)
-      .join('\n') || '—';
-
-    const outputsText = result.outputs
-      .map(o => {
-        const slotEmoji = SLOT_EMOJI[o.slot] ?? '⚔️';
-        const classBadge = CLASS_BADGE[o.armorClass] ?? '';
-        return `${slotEmoji}  **${o.name}**${classBadge ? `  —  ${classBadge}` : ''}`;
-      })
-      .join('\n') || '—';
-
-    const locText = result.destinations
-      .map(d => `📍  ${d}`)
-      .join('\n') || '—';
-
-    const desc = result.description
-      ? `*${result.description.replace(/\\n/g, ' ').slice(0, 160)}${result.description.length > 160 ? '…' : ''}*`
+    // Top-grid values
+    const armorClass  = result.outputs.find(o => o.armorClass && o.armorClass !== '?')?.armorClass;
+    const classLabel  = armorClass ? (CLASS_LABEL[armorClass] ?? armorClass) : '—';
+    const description = result.description
+      ? '*' + result.description.replace(/\\n/g, ' ').slice(0, 150) +
+        (result.description.length > 150 ? '…' : '') + '*'
       : '';
 
-    const recipeEmbed = new EmbedBuilder()
+    // Materials section — name row with qty bar
+    const maxAmt = Math.max(...result.materials.map(m => m.amount), 1);
+    const matLines = result.materials
+      .map(m => qtyBar(m.amount, maxAmt) + '  **' + m.name + '**  ×' + m.amount)
+      .join('\n') || '—';
+
+    // Stats section — outputs with slot emoji + class badge
+    const statLines = result.outputs
+      .map(o => (SLOT_EMOJI[o.slot] ?? '⚔️') + '  **' + o.name + '**  ·  ' + (CLASS_LABEL[o.armorClass] ?? '—'))
+      .join('\n') || '—';
+
+    // Destination tags
+    const locTags = result.destinations
+      .map(d => '`📍 ' + d + '`')
+      .join('\n') || '—';
+
+    const embed = new EmbedBuilder()
       .setColor(0x1ABC9C)
-      .setTitle(`⚒  Recipe — ${result.title}`)
-      .setDescription(desc)
+      .setTitle('⚒  ' + result.title)
+      .setDescription(description)
+      // Top grid: manufacturer (—) / class / craft time (—)
       .addFields(
-        { name: '📦  Materials Required', value: materialsText },
-        { name: '🎁  Output Items', value: outputsText },
+        { name: '🏭  Manufacturer', value: '—',                                       inline: true },
+        { name: '⚔️  Armor Class',  value: classLabel,                                 inline: true },
+        { name: '⏱  Craft Time',   value: '—',                                       inline: true },
+        // Materials with qty bars (quantity substitutes SCU; quality bonus data n/a)
+        { name: '📦  Materials  *(qty · quality bonus n/a)*', value: matLines },
+        // Stats / outputs
+        { name: '📊  Output Stats', value: statLines },
+        // Location tags
+        { name: '📍  Wikelo Station', value: locTags, inline: true },
+        { name: '🌌  System',         value: result.system || '—', inline: true },
       )
       .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
 
-    const locationEmbed = new EmbedBuilder()
-      .setColor(0x57F287)
-      .addFields(
-        { name: '📍  Craft At (Wikelo)', value: locText, inline: true },
-        { name: '🌌  System', value: result.system || '—', inline: true },
-      );
-
-    await interaction.editReply({ embeds: [recipeEmbed, locationEmbed] });
+    await interaction.editReply({ embeds: [embed] });
   },
 };
