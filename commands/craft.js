@@ -6,8 +6,8 @@ function qtyBar(amount, max, len = 10) {
   return '■'.repeat(filled) + '□'.repeat(len - filled);
 }
 
-function pct(multiplier) {
-  return Math.round(multiplier * 100) + '%';
+function pct(v) {
+  return (v * 100).toFixed(1) + '%';
 }
 
 module.exports = {
@@ -18,11 +18,20 @@ module.exports = {
       opt.setName('name')
         .setDescription('ชื่อ item, วัตถุดิบ หรือชื่อ recipe เช่น Ana Helmet, Antium, Vanduul')
         .setRequired(true)
+    )
+    .addIntegerOption(opt =>
+      opt.setName('quality')
+        .setDescription('Craft quality (0-1000, default 500)')
+        .setRequired(false)
+        .setMinValue(0)
+        .setMaxValue(1000)
     ),
 
   async execute(interaction) {
     await interaction.deferReply();
-    const name = interaction.options.getString('name');
+    const name    = interaction.options.getString('name');
+    const quality = interaction.options.getInteger('quality') ?? 500;
+    const factor  = 0.9 + (quality / 1000 * 0.2);
 
     let craftResult, itemData;
     try {
@@ -59,16 +68,21 @@ module.exports = {
         .join('\n');
     }
 
-    // Damage resistance stats (armor only)
+    // Damage resistance stats with quality factor (armor only)
     let statsValue = '—';
     if (isArmor && itemData.damageResistance) {
       const dr = itemData.damageResistance;
+      const stat = (base) => {
+        const b = base ?? 1;
+        return pct(b) + ' → ' + pct(b * factor);
+      };
       statsValue =
-        'Physical: ' + pct(dr.physical?.multiplier ?? 1) + '\n' +
-        'Energy: '   + pct(dr.energy?.multiplier    ?? 1) + '\n' +
-        'Distortion: '+ pct(dr.distortion?.multiplier?? 1) + '\n' +
-        'Thermal: '  + pct(dr.thermal?.multiplier   ?? 1) + '\n' +
-        'Stun: '     + pct(dr.stun?.multiplier      ?? 1);
+        'Quality: **' + quality + '**/1000 · Factor: ×' + factor.toFixed(3) + '\n' +
+        'Physical: '    + stat(dr.physical?.multiplier)    + '\n' +
+        'Energy: '      + stat(dr.energy?.multiplier)      + '\n' +
+        'Distortion: '  + stat(dr.distortion?.multiplier)  + '\n' +
+        'Thermal: '     + stat(dr.thermal?.multiplier)     + '\n' +
+        'Stun: '        + stat(dr.stun?.multiplier);
     }
 
     // Temperature range (armor only)
@@ -82,11 +96,11 @@ module.exports = {
       .setColor(0x1ABC9C)
       .setTitle('⚒ Craft — ' + itemName)
       .addFields(
-        { name: 'CLASS',        value: classLabel,  inline: true },
+        { name: 'CLASS',        value: classLabel,   inline: true },
         { name: 'MANUFACTURER', value: manufacturer, inline: true },
         { name: 'CRAFT TIME',   value: 'N/A',        inline: true },
-        { name: 'MATERIALS REQUIRED (QUALITY —)', value: matLines },
-        { name: 'STATS ที่ได้รับ', value: statsValue },
+        { name: 'MATERIALS REQUIRED (QUALITY ' + quality + ')', value: matLines },
+        { name: 'STATS ที่ได้รับ (Q' + quality + ')', value: statsValue },
         { name: 'TEMPERATURE RESISTANCE', value: tempValue },
       )
       .setFooter({ text: 'SCMDB · scmdb.net' })
