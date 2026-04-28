@@ -38,27 +38,29 @@ module.exports = {
     const top = results[0];
     const shown = results.slice(0, 5);
 
-    // Field 1: backtick chips with level-contract prefixes stripped, all on one line
+    // Field 1: one backtick chip per line
     const PREFIX_RE = /^[^:]+:\s*/;
     const missionChips = shown
       .map(m => '`' + m.title.replace(PREFIX_RE, '') + '`')
-      .join(' ');
+      .join('\n');
 
-    // Field 2: 2-column code block — FACTION/REWARD row 1, REP/H/DROP RATE row 2
+    // Field 2: 2-column code block with separator between rows
     const factionVal = top.faction || '—';
     const rewardVal  = (top.rewardUec ?? 0).toLocaleString() + ' aUEC';
     const repVal     = '—';
     const dropVal    = top.dropRate + '%';
     const COL        = Math.max('FACTION'.length, factionVal.length, 'REP/H'.length, repVal.length) + 2;
+    const SEP        = '─'.repeat(COL + Math.max('REWARD'.length, rewardVal.length));
     const gridBlock  = '```\n'
       + 'FACTION'.padEnd(COL) + 'REWARD\n'
       + factionVal.padEnd(COL) + rewardVal + '\n'
+      + SEP + '\n'
       + 'REP/H'.padEnd(COL)   + 'DROP RATE\n'
       + repVal.padEnd(COL)    + dropVal + '\n'
       + '```';
 
-    // Field 3: all blueprint names joined by · separator
-    const bpText = allBps.join(' · ') || '—';
+    // Field 3: one bullet per blueprint
+    const bpText = allBps.map(bp => '• ' + bp).join('\n') || '—';
 
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
