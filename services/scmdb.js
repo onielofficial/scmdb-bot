@@ -84,9 +84,46 @@ function findResource(keyword) {
     }));
 }
 
-// Crafting data is not present in this dataset.
-function getCraftInfo() {
-  return null;
+function getCraftInfo(itemName) {
+  const data = getData();
+  const kw = itemName.toLowerCase();
+
+  const contract = (data.contracts || []).find(c => {
+    if (c.missionType !== 'Wikelo - Other Items') return false;
+    if (c.title?.toLowerCase().includes(kw)) return true;
+    const outputs = (c.itemRewards || []).flatMap(ir => ir.choices || []);
+    if (outputs.some(o => o.name?.toLowerCase().includes(kw))) return true;
+    const orders = Array.isArray(c.haulingOrders) ? c.haulingOrders : [];
+    return orders.some(h => data.resourcePools?.[h.resource]?.name?.toLowerCase().includes(kw));
+  });
+
+  if (!contract) return null;
+
+  const materials = (Array.isArray(contract.haulingOrders) ? contract.haulingOrders : []).map(h => ({
+    name: data.resourcePools?.[h.resource]?.name || h.resource,
+    amount: h.minAmount ?? 1,
+  }));
+
+  const outputs = (contract.itemRewards || [])
+    .flatMap(ir => ir.choices || [])
+    .map(ch => ({
+      name: ch.name,
+      slot: ch.armorSlot || ch.itemType || '?',
+      armorClass: ch.armorClass || '?',
+    }));
+
+  const destinations = (contract.destinations || [])
+    .map(key => data.locationPools?.[key]?.name)
+    .filter(Boolean);
+
+  return {
+    title: contract.title,
+    description: contract.description,
+    materials,
+    outputs,
+    destinations,
+    system: (contract.systems || []).join(', '),
+  };
 }
 
 function searchQuest(keyword, system = null) {
