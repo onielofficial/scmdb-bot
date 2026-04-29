@@ -91,17 +91,17 @@ module.exports = {
     let drValue = null;
     if (isArmor && itemData.damageResistance) {
       const dr = itemData.damageResistance;
-      const dmgFactor = getPropertyFactor(slots, 'armor_damagemitigation', quality);
+      // Invert: blueprint modifierAtEnd > 1 means more mitigation → lower damage taken multiplier
+      const dmgFactor = 1 / getPropertyFactor(slots, 'armor_damagemitigation', quality);
       const drRow = (label, base) => {
         const b = base ?? 1;
         const crafted = b * dmgFactor;
-        const baseResist   = (1 - b) * 100;
-        const craftedResist = (1 - crafted) * 100;
-        const diff = craftedResist - baseResist;
-        const sign = diff >= 0 ? '+' : '';
-        return label.padEnd(6) +
-          baseResist.toFixed(1).padStart(6) + '% → ' +
-          craftedResist.toFixed(1).padStart(6) + '%  (' + sign + diff.toFixed(1) + '%)';
+        const bRes = ((1 - b) * 100).toFixed(0);
+        const cRes = ((1 - crafted) * 100).toFixed(0);
+        return label.padEnd(5) +
+          '×' + b.toFixed(2) + ' (-' + bRes + '%)' +
+          '  →  ' +
+          '×' + crafted.toFixed(2) + ' (-' + cRes + '%)';
       };
       drValue =
         qualityTier(quality) + '\n' +
