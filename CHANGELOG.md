@@ -1,29 +1,28 @@
-# Changelog
+# บันทึกการเปลี่ยนแปลง
 
-## [Unreleased]
+## [ยังไม่ได้ปล่อย]
 
-### /craft command
-- Improved embed UI layout (Class / Manufacturer / Mass inline)
-- Removed qtyBar progress bars from materials
-- Materials now show as simple list: 🔩 **Name** × `qty SCU`
-- Damage Resistance: monospace table with base → crafted + diff %
-- Quality tier label: 🔴 Low / 🔵 Mid / 🟢 High / 🟡 Max
-- Temperature Resistance: show base → crafted with diff
-- Added full Weapon Stats section:
-  - Damage, DPS (with quality scaling)
-  - Fire Rate (with quality scaling if modifier exists)
+### คำสั่ง /craft
+- ปรับปรุง UI ของ embed (Class / Manufacturer / Mass แสดงแบบ inline)
+- ลบ qtyBar progress bar ออกจากส่วนวัตถุดิบ
+- วัตถุดิบแสดงเป็นรายการแบบเรียบง่าย: 🔩 **ชื่อ** × `จำนวน SCU`
+- Damage Resistance: ตาราง monospace แสดงค่าฐาน → ค่าหลัง craft + ผลต่าง %
+- ป้ายบอกระดับ Quality: 🔴 ต่ำ / 🔵 กลาง / 🟢 สูง / 🟡 สูงสุด
+- Temperature Resistance: แสดงค่าฐาน → ค่าหลัง craft พร้อมผลต่าง
+- เพิ่มส่วน Weapon Stats ครบถ้วน:
+  - Damage, DPS (ปรับตาม quality)
+  - Fire Rate (ปรับตาม quality ถ้ามี modifier)
   - Magazine, Spread, Recoil P/Y, Smooth time, Range, Velocity
-- Fixed DR calculation: factor now applies correctly (higher quality = lower multiplier = more resistance)
-- Fixed biochemical damage type missing from DR table
-- Fixed quality factor: now per-property per-slot from blueprint modifiers (not hardcoded)
+- แก้ไขการคำนวณ DR: factor ทำงานถูกต้องแล้ว (quality สูงขึ้น = multiplier ต่ำลง = ต้านทานสูงขึ้น)
+- แก้ไข quality factor: คำนวณแบบ per-property per-slot จาก blueprint modifiers (ไม่ hardcode อีกต่อไป)
 
-### /items command
-- Added autocomplete support on search option
+### คำสั่ง /items
+- เพิ่มระบบ autocomplete สำหรับตัวเลือกการค้นหา
 
 ### services/scmdb.js
-- Added weapon data fields: size, grade, combatRange, fireModes, ammo, magazine
-- Fixed item search priority: exact match → startsWith → includes
-  (fixes "A03 Sniper Rifle" returning magazine instead of rifle)
+- เพิ่มฟิลด์ข้อมูลอาวุธ: size, grade, combatRange, fireModes, ammo, magazine
+- แก้ไขลำดับการค้นหา item: ตรงทั้งหมด → ขึ้นต้นด้วย → มีคำนั้นอยู่
+  (แก้ปัญหา "A03 Sniper Rifle" คืนค่า magazine แทนปืนจริง)
 
 ### index.js
-- Added autocomplete interaction handler
+- เพิ่ม handler สำหรับ autocomplete interaction
