@@ -1,75 +1,84 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { items } = require('../data/crafting_items.json');
+const craftingData = require('../data/crafting_items.json');
+const { items, damageResistancePools } = craftingData;
 
-const ITEMS_PER_PAGE = 10;
 const CATEGORY_TAG = { armor: 'ARMOR', weapon: 'WEAPON', unknown: 'OTHER' };
+
+function toTag(itemType) {
+  return CATEGORY_TAG[itemType] ?? itemType.toUpperCase();
+}
+
+function formatResistance(pool) {
+  const pct = v => `${Math.round((1 - v) * 100)}%`;
+  return [
+    `PHY: ${pct(pool.physical.multiplier)}  ENG: ${pct(pool.energy.multiplier)}  DIS: ${pct(pool.distortion.multiplier)}`,
+    `THM: ${pct(pool.thermal.multiplier)}  BIO: ${pct(pool.biochemical.multiplier)}  STN: ${pct(pool.stun.multiplier)}`,
+  ].join('\n');
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('items')
-    .setDescription('Browse all craftable items with search and category filter')
+    .setDescription('Look up a craftable item by name')
     .addStringOption(opt =>
       opt.setName('search')
-        .setDescription('Filter items by name (partial match)')
-        .setRequired(false)
-    )
-    .addStringOption(opt =>
-      opt.setName('category')
-        .setDescription('Filter by item type')
-        .setRequired(false)
-        .addChoices(
-          { name: 'Armor',  value: 'armor'   },
-          { name: 'Weapon', value: 'weapon'  },
-          { name: 'Other',  value: 'unknown' }
-        )
-    )
-    .addIntegerOption(opt =>
-      opt.setName('page')
-        .setDescription('Page number (default: 1)')
-        .setRequired(false)
-        .setMinValue(1)
+        .setDescription('Item name')
+        .setRequired(true)
+        .setAutocomplete(true)
     ),
 
+  async autocomplete(interaction) {
+    const focused = interaction.options.getFocused().toLowerCase();
+    const results = items
+      .filter(item => item.name.toLowerCase().startsWith(focused))
+      .slice(0, 25)
+      .map(item => ({
+        name: `[${toTag(item.itemType)}] ${item.name}`,
+        value: item.name,
+      }));
+    await interaction.respond(results);
+  },
+
   async execute(interaction) {
-    const search   = interaction.options.getString('search');
-    const category = interaction.options.getString('category');
-    const page     = interaction.options.getInteger('page') ?? 1;
+    const search = interaction.options.getString('search');
+    const item = items.find(i => i.name.toLowerCase() === search.toLowerCase());
 
-    let filtered = items;
-
-    if (search) {
-      const q = search.toLowerCase();
-      filtered = filtered.filter(item => item.name.toLowerCase().includes(q));
+    if (!item) {
+      return interaction.reply({
+        content: `❌ Item **${search}** not found.`,
+        ephemeral: true,
+      });
     }
-
-    if (category) {
-      filtered = filtered.filter(item => item.itemType === category);
-    }
-
-    const total      = filtered.length;
-    const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
-    const safePage   = Math.min(page, totalPages);
-    const start      = (safePage - 1) * ITEMS_PER_PAGE;
-    const pageItems  = filtered.slice(start, start + ITEMS_PER_PAGE);
 
     const embed = new EmbedBuilder()
-      .setTitle('📦 Item List')
-      .setColor(0x5865F2);
+      .setTitle(item.name)
+      .setColor(0x5865F2)
+      .addFields(
+        { name: 'TYPE',         value: toTag(item.itemType),          inline: true },
+        { name: 'MANUFACTURER', value: item.manufacturer ?? 'Unknown', inline: true },
+        { name: 'MASS',         value: `${item.mass} kg`,             inline: true }
+      );
 
-    if (total === 0) {
-      embed.setDescription('❌ No items found matching your search');
-    } else {
-      const lines = pageItems.map(item => {
-        const tag = CATEGORY_TAG[item.itemType] ?? item.itemType.toUpperCase();
-        return `[${tag}] ${item.name} — ${item.manufacturer}`;
-      });
-      embed.setDescription(lines.join('\n'));
+    if (item.itemType === 'armor') {
+      if (item.attachSubType) {
+        embed.addFields({ name: 'ARMOR CLASS', value: item.attachSubType, inline: true });
+      }
+
+      if (item.temperatureResistance) {
+        const { min, max } = item.temperatureResistance;
+        embed.addFields({ name: 'TEMPERATURE', value: `${min}°C — ${max}°C`, inline: true });
+      }
+
+      if (item.damageResistanceIndex != null && damageResistancePools[item.damageResistanceIndex]) {
+        const pool = damageResistancePools[item.damageResistanceIndex];
+        embed.addFields({ name: 'DAMAGE RESISTANCE', value: `\`\`\`${formatResistance(pool)}\`\`\`` });
+      }
     }
 
     embed
-      .setFooter({ text: `Page ${safePage} / ${totalPages}  ·  Total: ${total} items  ·  SCMDB · scmdb.net` })
+      .setFooter({ text: 'SCMDB · scmdb.net' })
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
-  }
+  },
 };

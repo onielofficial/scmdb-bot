@@ -16,9 +16,15 @@ client.once('ready', () => {
 });
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
   const cmd = client.commands.get(interaction.commandName);
   if (!cmd) return;
+
+  if (interaction.isAutocomplete()) {
+    if (cmd.autocomplete) await cmd.autocomplete(interaction);
+    return;
+  }
+
+  if (!interaction.isChatInputCommand()) return;
   try {
     await cmd.execute(interaction);
   } catch (err) {
