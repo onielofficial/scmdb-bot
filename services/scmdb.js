@@ -203,6 +203,7 @@ function getCraftingItem(keyword) {
     name:                 item.name,
     manufacturer:         item.manufacturer || null,
     itemType:             item.itemType || null,
+    mass:                 item.mass ?? null,
     temperatureResistance: item.temperatureResistance || null,
     damageResistance:     pool || null,
   };

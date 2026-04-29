@@ -1,15 +1,25 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getCraftInfo, getCraftingItem, getCraftingBlueprint } = require('../services/scmdb');
 
-function pct(v) {
-  return (v * 100).toFixed(1) + '%';
-}
-
 function qualityTier(q) {
   if (q >= 900) return '🟡 Max (900–1000)';
   if (q >= 700) return '🟢 High (700–899)';
   if (q >= 400) return '🔵 Mid (400–699)';
   return '🔴 Low (0–399)';
+}
+
+// Multiply together all slot modifiers that match propertyKey, interpolated at quality.
+function getPropertyFactor(slots, propertyKey, quality) {
+  let factor = 1.0;
+  for (const slot of slots) {
+    for (const mod of (slot.modifiers ?? [])) {
+      if (mod.propertyKey === propertyKey) {
+        const t = (quality - mod.startQuality) / (mod.endQuality - mod.startQuality);
+        factor *= mod.modifierAtStart + t * (mod.modifierAtEnd - mod.modifierAtStart);
+      }
+    }
+  }
+  return factor;
 }
 
 module.exports = {
@@ -33,7 +43,6 @@ module.exports = {
     await interaction.deferReply();
     const name    = interaction.options.getString('name');
     const quality = interaction.options.getInteger('quality') ?? 500;
-    const factor  = 0.9 + (quality / 1000 * 0.2);
 
     let craftResult, itemData, blueprintData;
     try {
@@ -61,9 +70,10 @@ module.exports = {
     const isArmor      = itemData?.itemType === 'armor';
     const craftTime    = blueprintData ? blueprintData.tiers[0].craftTimeSeconds + 's' : 'N/A';
 
+    const slots = blueprintData?.tiers[0].slots ?? [];
+
     // Materials: prefer blueprint slots, fall back to merged.json
     let matLines = '—';
-    const slots = blueprintData?.tiers[0].slots ?? [];
     if (slots.length) {
       matLines = slots.flatMap(s =>
         s.options.map(o =>
@@ -81,21 +91,26 @@ module.exports = {
     let drValue = null;
     if (isArmor && itemData.damageResistance) {
       const dr = itemData.damageResistance;
-      const row = (label, base) => {
+      const dmgFactor = getPropertyFactor(slots, 'armor_damagemitigation', quality);
+      const drRow = (label, base) => {
         const b = base ?? 1;
-        const crafted = b * factor;
-        const diff = (crafted - b) * 100;
+        const crafted = b * dmgFactor;
+        const baseResist   = (1 - b) * 100;
+        const craftedResist = (1 - crafted) * 100;
+        const diff = craftedResist - baseResist;
         const sign = diff >= 0 ? '+' : '';
-        return label.padEnd(6) + pct(b).padStart(6) + ' → ' + pct(crafted).padStart(6) + '  (' + sign + diff.toFixed(1) + '%)';
+        return label.padEnd(6) +
+          baseResist.toFixed(1).padStart(6) + '% → ' +
+          craftedResist.toFixed(1).padStart(6) + '%  (' + sign + diff.toFixed(1) + '%)';
       };
       drValue =
         qualityTier(quality) + '\n' +
         '```\n' +
-        row('PHY', dr.physical?.multiplier)   + '\n' +
-        row('ENG', dr.energy?.multiplier)     + '\n' +
-        row('DIS', dr.distortion?.multiplier) + '\n' +
-        row('THM', dr.thermal?.multiplier)    + '\n' +
-        row('STN', dr.stun?.multiplier)       + '\n' +
+        drRow('PHY', dr.physical?.multiplier)   + '\n' +
+        drRow('ENG', dr.energy?.multiplier)     + '\n' +
+        drRow('DIS', dr.distortion?.multiplier) + '\n' +
+        drRow('THM', dr.thermal?.multiplier)    + '\n' +
+        drRow('STN', dr.stun?.multiplier)       + '\n' +
         '```';
     }
 
@@ -103,17 +118,18 @@ module.exports = {
     let tempValue = null;
     if (isArmor && itemData.temperatureResistance) {
       const tr = itemData.temperatureResistance;
-      const minCrafted = tr.min * factor;
-      const maxCrafted = tr.max * factor;
+      const minFactor = getPropertyFactor(slots, 'armor_temperaturemin', quality);
+      const maxFactor = getPropertyFactor(slots, 'armor_temperaturemax', quality);
+      const minCrafted = tr.min * minFactor;
+      const maxCrafted = tr.max * maxFactor;
       const minDiff = minCrafted - tr.min;
       const maxDiff = maxCrafted - tr.max;
-      const fmt = (v) => v.toFixed(1) + '°C';
-      const signMin = minDiff >= 0 ? '+' : '';
-      const signMax = maxDiff >= 0 ? '+' : '';
+      const fmt  = (v) => v.toFixed(1) + '°C';
+      const sign = (v) => v >= 0 ? '+' : '';
       tempValue =
         '```\n' +
-        'Min  ' + fmt(tr.min).padStart(8)      + ' → ' + fmt(minCrafted).padStart(9) + '  (' + signMin + fmt(minDiff) + ')\n' +
-        'Max  ' + fmt(tr.max).padStart(8)      + ' → ' + fmt(maxCrafted).padStart(9) + '  (' + signMax + fmt(maxDiff) + ')\n' +
+        'Min  ' + fmt(tr.min).padStart(8)      + ' → ' + fmt(minCrafted).padStart(9) + '  (' + sign(minDiff) + fmt(minDiff) + ')\n' +
+        'Max  ' + fmt(tr.max).padStart(8)      + ' → ' + fmt(maxCrafted).padStart(9) + '  (' + sign(maxDiff) + fmt(maxDiff) + ')\n' +
         '```';
     }
 
