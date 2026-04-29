@@ -137,38 +137,95 @@ module.exports = {
     // Weapon stats (weapon only)
     let weaponValue = null;
     if (itemData?.itemType === 'weapon') {
-      const pad = (label) => label.padEnd(14);
+      const pad = (label) => label.padEnd(12);
       const lines = [];
 
+      const hasMod = (key) => slots.some(s => s.modifiers?.some(m => m.propertyKey === key));
+      const pctDiff = (base, crafted) => {
+        const d = (crafted - base) / base * 100;
+        return (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
+      };
+
+      const damageFactor   = getPropertyFactor(slots, 'weapon_damage',            quality);
+      const firerateFactor = getPropertyFactor(slots, 'weapon_firerate',          quality);
+      const smoothFactor   = getPropertyFactor(slots, 'weapon_recoil_smoothness', quality);
+
+      const fm0 = itemData.fireModes?.[0];
+
+      // Damage
       if (itemData.ammo?.damage) {
-        const dmg = itemData.ammo.damage;
+        const dmg    = itemData.ammo.damage;
         const active = ['physical','energy','distortion','thermal','biochemical','stun'].filter(t => dmg[t] > 0);
-        if (active.length === 1) {
-          lines.push(pad('Damage') + dmg[active[0]].toFixed(1) + ' (' + active[0].slice(0,3).toUpperCase() + ')');
-        } else if (active.length > 1) {
-          const total = active.reduce((s, t) => s + dmg[t], 0);
-          lines.push(pad('Damage') + total.toFixed(1));
-          for (const t of active) lines.push(pad('  ' + t.slice(0,3).toUpperCase()) + dmg[t].toFixed(1));
+        if (active.length > 0) {
+          const baseDmg    = active.reduce((s, t) => s + dmg[t], 0);
+          const craftedDmg = baseDmg * damageFactor;
+          const typeLabel  = active.length === 1 ? ' (' + active[0].slice(0,3).toUpperCase() + ')' : '';
+          if (hasMod('weapon_damage')) {
+            lines.push(pad('Damage') + baseDmg.toFixed(1) + '  →  ' + craftedDmg.toFixed(1) + typeLabel + '  (' + pctDiff(baseDmg, craftedDmg) + ')');
+          } else {
+            lines.push(pad('Damage') + baseDmg.toFixed(1) + typeLabel);
+          }
+
+          // DPS = damage * fireRate / 60
+          if (fm0) {
+            const baseDPS    = baseDmg            * fm0.fireRate                     / 60;
+            const craftedDPS = (baseDmg * damageFactor) * (fm0.fireRate * firerateFactor) / 60;
+            if (hasMod('weapon_damage') || hasMod('weapon_firerate')) {
+              lines.push(pad('DPS') + baseDPS.toFixed(1) + '  →  ' + craftedDPS.toFixed(1) + '  (' + pctDiff(baseDPS, craftedDPS) + ')');
+            } else {
+              lines.push(pad('DPS') + baseDPS.toFixed(1));
+            }
+          }
         }
       }
 
+      // Fire Rate
       if (itemData.fireModes?.length) {
         for (const mode of itemData.fireModes) {
-          lines.push(pad('Fire Rate') + mode.fireRate + ' rpm (' + mode.name + ')');
+          if (hasMod('weapon_firerate')) {
+            const crafted = Math.round(mode.fireRate * firerateFactor);
+            lines.push(pad('Fire Rate') + mode.fireRate + ' rpm  →  ' + crafted + ' rpm (' + mode.name + ')');
+          } else {
+            lines.push(pad('Fire Rate') + mode.fireRate + ' rpm (' + mode.name + ')');
+          }
         }
       }
 
+      // Magazine
       if (itemData.magazine) {
-        const mag = itemData.magazine;
+        const mag     = itemData.magazine;
         const restock = mag.maxRestockCount > 0 ? ' (+' + mag.maxRestockCount + ' reloads)' : '';
         lines.push(pad('Magazine') + mag.ammoCount + ' rnd' + restock);
       }
 
+      // Spread — no modifier exists, always show base
+      if (fm0?.spread) {
+        lines.push(pad('Spread') + fm0.spread.min.toFixed(2) + '–' + fm0.spread.max.toFixed(2) + '°');
+      }
+
+      // Recoil pitch / yaw — no scaling, show base
+      if (fm0?.recoil) {
+        lines.push(pad('Recoil P/Y') + fm0.recoil.pitchMaxDeg.toFixed(3) + '° / ' + fm0.recoil.yawMaxDeg.toFixed(3) + '°');
+      }
+
+      // Smooth time (scaled by weapon_recoil_smoothness if modifier exists)
+      if (fm0?.recoil?.smoothTime != null) {
+        const base    = fm0.recoil.smoothTime;
+        const crafted = base * smoothFactor;
+        if (hasMod('weapon_recoil_smoothness')) {
+          lines.push(pad('Smooth') + base.toFixed(3) + 's  →  ' + crafted.toFixed(3) + 's  (' + pctDiff(base, crafted) + ')');
+        } else {
+          lines.push(pad('Smooth') + base.toFixed(3) + 's');
+        }
+      }
+
+      // Range
       if (itemData.combatRange) {
         const r = itemData.combatRange;
         lines.push(pad('Range') + r.ideal + '–' + r.max + ' m (' + r.category + ')');
       }
 
+      // Velocity
       if (itemData.ammo?.speed) {
         lines.push(pad('Velocity') + itemData.ammo.speed + ' m/s');
       }
