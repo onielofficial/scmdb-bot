@@ -1,28 +1,25 @@
 # บันทึกการเปลี่ยนแปลง
 
-## [ยังไม่ได้ปล่อย]
+## การอัปเดต
 
 ### คำสั่ง /craft
-- ปรับปรุง UI ของ embed (Class / Manufacturer / Mass แสดงแบบ inline)
-- ลบ qtyBar progress bar ออกจากส่วนวัตถุดิบ
-- วัตถุดิบแสดงเป็นรายการแบบเรียบง่าย: 🔩 **ชื่อ** × `จำนวน SCU`
-- Damage Resistance: ตาราง monospace แสดงค่าฐาน → ค่าหลัง craft + ผลต่าง %
-- ป้ายบอกระดับ Quality: 🔴 ต่ำ / 🔵 กลาง / 🟢 สูง / 🟡 สูงสุด
-- Temperature Resistance: แสดงค่าฐาน → ค่าหลัง craft พร้อมผลต่าง
-- เพิ่มส่วน Weapon Stats ครบถ้วน:
-  - Damage, DPS (ปรับตาม quality)
-  - Fire Rate (ปรับตาม quality ถ้ามี modifier)
-  - Magazine, Spread, Recoil P/Y, Smooth time, Range, Velocity
-- แก้ไขการคำนวณ DR: factor ทำงานถูกต้องแล้ว (quality สูงขึ้น = multiplier ต่ำลง = ต้านทานสูงขึ้น)
-- แก้ไข quality factor: คำนวณแบบ per-property per-slot จาก blueprint modifiers (ไม่ hardcode อีกต่อไป)
+- ปรับ UI ใหม่ให้อ่านง่ายขึ้น (Class / Manufacturer / Mass อยู่แถวเดียวกัน)
+- เอา progress bar ออกจาก Materials
+- Materials แสดงเป็น list เรียบๆ เช่น 🔩 **Tungsten** × `0.06 SCU`
+- Damage Resistance แสดงเป็นตาราง monospace พร้อม base → crafted และ % ต่าง
+- เพิ่ม quality tier label: 🔴 Low / 🔵 Mid / 🟢 High / 🟡 Max
+- Temperature Resistance แสดง base → crafted พร้อม diff
+- เพิ่ม Weapon Stats ครบ: Damage, DPS, Fire Rate, Magazine, Spread, Recoil, Smooth, Range, Velocity
+- แก้การคำนวณ DR ให้ถูกต้อง (quality สูง = multiplier ต่ำ = ป้องกันได้มากขึ้น)
+- แก้ quality factor ให้คำนวณแบบ per-property per-slot จาก blueprint modifiers
 
 ### คำสั่ง /items
-- เพิ่มระบบ autocomplete สำหรับตัวเลือกการค้นหา
+- เพิ่ม autocomplete สำหรับช่อง search
 
 ### services/scmdb.js
-- เพิ่มฟิลด์ข้อมูลอาวุธ: size, grade, combatRange, fireModes, ammo, magazine
-- แก้ไขลำดับการค้นหา item: ตรงทั้งหมด → ขึ้นต้นด้วย → มีคำนั้นอยู่
-  (แก้ปัญหา "A03 Sniper Rifle" คืนค่า magazine แทนปืนจริง)
+- เพิ่ม weapon fields: size, grade, combatRange, fireModes, ammo, magazine
+- แก้ลำดับการค้นหา item: exact match → startsWith → includes
+  (แก้ปัญหา "A03 Sniper Rifle" ดึง Magazine แทน Rifle)
 
 ### index.js
-- เพิ่ม handler สำหรับ autocomplete interaction
+- เพิ่ม autocomplete interaction handler
