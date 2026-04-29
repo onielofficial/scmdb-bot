@@ -161,7 +161,7 @@ module.exports = {
           const craftedDmg = baseDmg * damageFactor;
           const typeLabel  = active.length === 1 ? ' (' + active[0].slice(0,3).toUpperCase() + ')' : '';
           if (hasMod('weapon_damage')) {
-            lines.push(pad('Damage') + baseDmg.toFixed(1) + '  →  ' + craftedDmg.toFixed(1) + typeLabel + '  (' + pctDiff(baseDmg, craftedDmg) + ')');
+            lines.push(pad('Damage') + baseDmg.toFixed(1).padEnd(14) + '→  ' + craftedDmg.toFixed(1) + typeLabel + '  (' + pctDiff(baseDmg, craftedDmg) + ')');
           } else {
             lines.push(pad('Damage') + baseDmg.toFixed(1) + typeLabel);
           }
@@ -171,7 +171,7 @@ module.exports = {
             const baseDPS    = baseDmg            * fm0.fireRate                     / 60;
             const craftedDPS = (baseDmg * damageFactor) * (fm0.fireRate * firerateFactor) / 60;
             if (hasMod('weapon_damage') || hasMod('weapon_firerate')) {
-              lines.push(pad('DPS') + baseDPS.toFixed(1) + '  →  ' + craftedDPS.toFixed(1) + '  (' + pctDiff(baseDPS, craftedDPS) + ')');
+              lines.push(pad('DPS') + baseDPS.toFixed(1).padEnd(14) + '→  ' + craftedDPS.toFixed(1) + '  (' + pctDiff(baseDPS, craftedDPS) + ')');
             } else {
               lines.push(pad('DPS') + baseDPS.toFixed(1));
             }
@@ -184,7 +184,7 @@ module.exports = {
         for (const mode of itemData.fireModes) {
           if (hasMod('weapon_firerate')) {
             const crafted = Math.round(mode.fireRate * firerateFactor);
-            lines.push(pad('Fire Rate') + mode.fireRate + ' rpm  →  ' + crafted + ' rpm (' + mode.name + ')');
+            lines.push(pad('Fire Rate') + (mode.fireRate + ' rpm').padEnd(14) + '→  ' + crafted + ' rpm (' + mode.name + ')');
           } else {
             lines.push(pad('Fire Rate') + mode.fireRate + ' rpm (' + mode.name + ')');
           }
@@ -213,7 +213,7 @@ module.exports = {
         const base    = fm0.recoil.smoothTime;
         const crafted = base * smoothFactor;
         if (hasMod('weapon_recoil_smoothness')) {
-          lines.push(pad('Smooth') + base.toFixed(3) + 's  →  ' + crafted.toFixed(3) + 's  (' + pctDiff(base, crafted) + ')');
+          lines.push(pad('Smooth') + (base.toFixed(3) + 's').padEnd(14) + '→  ' + crafted.toFixed(3) + 's  (' + pctDiff(base, crafted) + ')');
         } else {
           lines.push(pad('Smooth') + base.toFixed(3) + 's');
         }
