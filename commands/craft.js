@@ -91,11 +91,11 @@ module.exports = {
     let drValue = null;
     if (isArmor && itemData.damageResistance) {
       const dr = itemData.damageResistance;
-      // Invert: blueprint modifierAtEnd > 1 means more mitigation → lower damage taken multiplier
-      const dmgFactor = 1 / getPropertyFactor(slots, 'armor_damagemitigation', quality);
+      // Factor applies to resistance (1 - multiplier), not to the multiplier directly
+      const dmgFactor = getPropertyFactor(slots, 'armor_damagemitigation', quality);
       const drRow = (label, base) => {
         const b = base ?? 1;
-        const crafted = b * dmgFactor;
+        const crafted = 1 - (1 - b) * dmgFactor;
         const bRes = ((1 - b) * 100).toFixed(0);
         const cRes = ((1 - crafted) * 100).toFixed(0);
         return label.padEnd(5) +
