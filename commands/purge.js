@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags, PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -14,8 +14,13 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    if (!interaction.member.permissions.has('ManageMessages')) {
-      return interaction.reply({ content: '❌ คุณไม่มีสิทธิ์ใช้คำสั่งนี้', ephemeral: true });
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+      return interaction.reply({ content: '❌ คุณไม่มีสิทธิ์ใช้คำสั่งนี้', flags: MessageFlags.Ephemeral });
+    }
+
+    const botMember = interaction.guild.members.me;
+    if (!interaction.channel.permissionsFor(botMember).has(PermissionFlagsBits.ManageMessages)) {
+      return interaction.reply({ content: '❌ บอทไม่มีสิทธิ์ลบข้อความในห้องนี้', flags: MessageFlags.Ephemeral });
     }
 
     const amount = interaction.options.getInteger('amount');
@@ -23,7 +28,7 @@ module.exports = {
 
     await interaction.reply({
       content: `🗑️ ลบ ${deleted.size} ข้อความแล้ว`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };
