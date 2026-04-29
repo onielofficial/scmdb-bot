@@ -20,7 +20,7 @@ module.exports = {
     }
 
     const embed = new EmbedBuilder()
-      .setColor(0x1ABC9C)
+      .setColor(0x5865F2)
       .setTitle('📋 SCMDB Bot — Changelog')
       .setDescription(content)
       .setFooter({ text: `SCMDB · scmdb.net • ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}` });

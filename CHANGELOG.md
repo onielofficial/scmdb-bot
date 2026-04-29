@@ -1,8 +1,6 @@
-# บันทึกการเปลี่ยนแปลง
+## Updates
 
-## การอัปเดต
-
-### คำสั่ง /craft
+### /craft
 - ปรับ UI ใหม่ให้อ่านง่ายขึ้น (Class / Manufacturer / Mass อยู่แถวเดียวกัน)
 - เอา progress bar ออกจาก Materials
 - Materials แสดงเป็น list เรียบๆ เช่น 🔩 **Tungsten** × `0.06 SCU`
@@ -13,7 +11,7 @@
 - แก้การคำนวณ DR ให้ถูกต้อง (quality สูง = multiplier ต่ำ = ป้องกันได้มากขึ้น)
 - แก้ quality factor ให้คำนวณแบบ per-property per-slot จาก blueprint modifiers
 
-### คำสั่ง /items
+### /items
 - เพิ่ม autocomplete สำหรับช่อง search
 
 ### services/scmdb.js
