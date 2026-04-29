@@ -31,8 +31,7 @@ module.exports = {
           value: 'Show this command list',
         }
       )
-      .setFooter({ text: 'SCMDB · scmdb.net' })
-      .setTimestamp();
+      .setFooter({ text: `SCMDB · scmdb.net • ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}` });
 
     await interaction.reply({ embeds: [embed] });
   }

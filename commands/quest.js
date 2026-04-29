@@ -51,8 +51,7 @@ module.exports = {
         (system ? '  ·  🌌 ' + system.charAt(0).toUpperCase() + system.slice(1) : '') +
         (results.length > 5 ? '  ·  *แสดง 5 รายการ*' : '')
       )
-      .setFooter({ text: 'SCMDB · scmdb.net' })
-      .setTimestamp();
+      .setFooter({ text: `SCMDB · scmdb.net • ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}` });
 
     for (const q of shown) {
       const legalIcon = q.illegal ? '🔴' : '🟢';

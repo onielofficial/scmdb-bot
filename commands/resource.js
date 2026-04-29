@@ -81,8 +81,7 @@ module.exports = {
           value: ranked,
         },
       )
-      .setFooter({ text: 'SCMDB · scmdb.net' })
-      .setTimestamp();
+      .setFooter({ text: `SCMDB · scmdb.net • ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}` });
 
     await interaction.editReply({ embeds: [embed] });
   },
