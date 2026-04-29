@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getCraftInfo, getCraftingItem, getCraftingBlueprint } = require('../services/scmdb');
+const { items } = require('../data/crafting_items.json');
 
 function qualityTier(q) {
   if (q >= 900) return '🟡 Max (900–1000)';
@@ -30,6 +31,7 @@ module.exports = {
       opt.setName('name')
         .setDescription('ชื่อ item, วัตถุดิบ หรือชื่อ recipe เช่น Ana Helmet, Antium, Vanduul')
         .setRequired(true)
+        .setAutocomplete(true)
     )
     .addIntegerOption(opt =>
       opt.setName('quality')
@@ -263,5 +265,14 @@ module.exports = {
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
+  },
+
+  async autocomplete(interaction) {
+    const focused = interaction.options.getFocused().toLowerCase();
+    const results = items
+      .filter(item => item.name.toLowerCase().startsWith(focused))
+      .slice(0, 25)
+      .map(item => ({ name: item.name, value: item.name }));
+    await interaction.respond(results);
   },
 };
