@@ -8,6 +8,13 @@ let _cache       = null;
 let _craftCache  = null;
 let _bpCache     = null;
 
+function priorityFind(arr, keyFn, kw) {
+  const lkw = kw.toLowerCase();
+  return arr.find(x => keyFn(x)?.toLowerCase() === lkw)
+      || arr.find(x => keyFn(x)?.toLowerCase().startsWith(lkw))
+      || arr.find(x => keyFn(x)?.toLowerCase().includes(lkw));
+}
+
 function getData() {
   if (_cache) return _cache;
   if (!fs.existsSync(DATA_PATH)) {
@@ -117,14 +124,17 @@ function getCraftInfo(itemName) {
   const data = getData();
   const kw = itemName.toLowerCase();
 
-  const contract = (data.contracts || []).find(c => {
-    if (c.missionType !== 'Wikelo - Other Items') return false;
-    if (c.title?.toLowerCase().includes(kw)) return true;
-    const outputs = (c.itemRewards || []).flatMap(ir => ir.choices || []);
-    if (outputs.some(o => o.name?.toLowerCase().includes(kw))) return true;
-    const orders = Array.isArray(c.haulingOrders) ? c.haulingOrders : [];
-    return orders.some(h => data.resourcePools?.[h.resource]?.name?.toLowerCase().includes(kw));
-  });
+  const wikelo = (data.contracts || []).filter(c => c.missionType === 'Wikelo - Other Items');
+  const outNames = (c) => (c.itemRewards || []).flatMap(ir => ir.choices || []);
+  const contract =
+    wikelo.find(c => outNames(c).some(o => o.name?.toLowerCase() === kw)) ||
+    wikelo.find(c => outNames(c).some(o => o.name?.toLowerCase().startsWith(kw))) ||
+    wikelo.find(c => {
+      if (c.title?.toLowerCase().includes(kw)) return true;
+      if (outNames(c).some(o => o.name?.toLowerCase().includes(kw))) return true;
+      const orders = Array.isArray(c.haulingOrders) ? c.haulingOrders : [];
+      return orders.some(h => data.resourcePools?.[h.resource]?.name?.toLowerCase().includes(kw));
+    });
 
   if (!contract) return null;
 
@@ -141,9 +151,11 @@ function getCraftInfo(itemName) {
       armorClass: ch.armorClass || '?',
     }));
 
-  const resolvedItemName = outputs.find(o => o.name?.toLowerCase().includes(kw))?.name
-    || outputs[0]?.name
-    || contract.title;
+  const resolvedItemName = (
+    outputs.find(o => o.name?.toLowerCase() === kw) ||
+    outputs.find(o => o.name?.toLowerCase().startsWith(kw)) ||
+    outputs.find(o => o.name?.toLowerCase().includes(kw))
+  )?.name || outputs[0]?.name || contract.title;
 
   const destinations = (contract.destinations || [])
     .map(key => data.locationPools?.[key]?.name)
@@ -191,8 +203,7 @@ function searchQuest(keyword, system = null) {
 
 function getCraftingItem(keyword) {
   const data = getCraftItemsData();
-  const kw = keyword.toLowerCase();
-  const item = data.items.find(i => i.name?.toLowerCase().includes(kw));
+  const item = priorityFind(data.items, i => i.name, keyword);
   if (!item) return null;
 
   const pool = item.damageResistanceIndex != null
@@ -217,9 +228,7 @@ function getCraftingItem(keyword) {
 
 function getCraftingBlueprint(keyword) {
   const data = getBlueprintsData();
-  const kw = keyword.toLowerCase();
-  const bp = data.blueprints.find(b => b.productName?.toLowerCase().includes(kw));
-  return bp ?? null;
+  return priorityFind(data.blueprints, b => b.productName, keyword) ?? null;
 }
 
 module.exports = { getData, searchBlueprint, findResource, getCraftInfo, getCraftingItem, getCraftingBlueprint, searchQuest };
