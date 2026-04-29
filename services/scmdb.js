@@ -204,8 +204,14 @@ function getCraftingItem(keyword) {
     manufacturer:         item.manufacturer || null,
     itemType:             item.itemType || null,
     mass:                 item.mass ?? null,
+    size:                 item.size ?? null,
+    grade:                item.grade ?? null,
     temperatureResistance: item.temperatureResistance || null,
     damageResistance:     pool || null,
+    combatRange:          item.combatRange || null,
+    fireModes:            item.fireModesIndex != null ? data.fireModesPools[item.fireModesIndex] : null,
+    ammo:                 item.ammoIndex     != null ? data.ammoPools[item.ammoIndex]           : null,
+    magazine:             item.magazineIndex != null ? data.magazinePools[item.magazineIndex]   : null,
   };
 }
 

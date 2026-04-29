@@ -76,10 +76,11 @@ module.exports = {
     let matLines = '—';
     if (slots.length) {
       matLines = slots.flatMap(s =>
-        s.options.map(o =>
-          '🔩 **' + o.resourceName + '** × `' + o.quantity + ' SCU`' +
-          (o.minQuality > 0 ? '  _(min Q: ' + o.minQuality + ')_' : '')
-        )
+        s.options.map(o => {
+          const rName = o.resourceName ?? o.name ?? o.itemName ?? 'Unknown';
+          return '🔩 **' + rName + '** × `' + o.quantity + ' SCU`' +
+            (o.minQuality > 0 ? '  _(min Q: ' + o.minQuality + ')_' : '');
+        })
       ).join('\n');
     } else if (craftResult?.materials?.length) {
       matLines = craftResult.materials.map(m =>
@@ -133,6 +134,57 @@ module.exports = {
         '```';
     }
 
+    // Weapon stats (weapon only)
+    let weaponValue = null;
+    if (itemData?.itemType === 'weapon') {
+      const pad = (label) => label.padEnd(14);
+      const lines = [];
+
+      if (itemData.ammo?.damage) {
+        const dmg = itemData.ammo.damage;
+        const active = ['physical','energy','distortion','thermal','biochemical','stun'].filter(t => dmg[t] > 0);
+        if (active.length === 1) {
+          lines.push(pad('Damage') + dmg[active[0]].toFixed(1) + ' (' + active[0].slice(0,3).toUpperCase() + ')');
+        } else if (active.length > 1) {
+          const total = active.reduce((s, t) => s + dmg[t], 0);
+          lines.push(pad('Damage') + total.toFixed(1));
+          for (const t of active) lines.push(pad('  ' + t.slice(0,3).toUpperCase()) + dmg[t].toFixed(1));
+        }
+      }
+
+      if (itemData.fireModes?.length) {
+        for (const mode of itemData.fireModes) {
+          lines.push(pad('Fire Rate') + mode.fireRate + ' rpm (' + mode.name + ')');
+        }
+      }
+
+      if (itemData.magazine) {
+        const mag = itemData.magazine;
+        const restock = mag.maxRestockCount > 0 ? ' (+' + mag.maxRestockCount + ' reloads)' : '';
+        lines.push(pad('Magazine') + mag.ammoCount + ' rnd' + restock);
+      }
+
+      if (itemData.combatRange) {
+        const r = itemData.combatRange;
+        lines.push(pad('Range') + r.ideal + '–' + r.max + ' m (' + r.category + ')');
+      }
+
+      if (itemData.ammo?.speed) {
+        lines.push(pad('Velocity') + itemData.ammo.speed + ' m/s');
+      }
+
+      if (lines.length) weaponValue = '```\n' + lines.join('\n') + '\n```';
+    }
+
+    // Generic fallback for non-armor, non-weapon items
+    let otherValue = null;
+    if (itemData && !isArmor && itemData.itemType !== 'weapon') {
+      const lines = [];
+      if (itemData.size  != null) lines.push('Size'.padEnd(14)  + itemData.size);
+      if (itemData.grade != null) lines.push('Grade'.padEnd(14) + itemData.grade);
+      if (lines.length) otherValue = '```\n' + lines.join('\n') + '\n```';
+    }
+
     const fields = [
       { name: '🏷️ Class',       value: classLabel,   inline: true },
       { name: '🏭 Manufacturer', value: manufacturer, inline: true },
@@ -141,8 +193,10 @@ module.exports = {
       { name: '📦 Materials (Q' + quality + ')', value: matLines },
     ];
 
-    if (drValue)   fields.push({ name: '🛡️ Damage Resistance',     value: drValue });
-    if (tempValue) fields.push({ name: '🌡️ Temperature Resistance', value: tempValue });
+    if (drValue)      fields.push({ name: '🛡️ Damage Resistance',     value: drValue });
+    if (tempValue)    fields.push({ name: '🌡️ Temperature Resistance', value: tempValue });
+    if (weaponValue)  fields.push({ name: '🔫 Weapon Stats',           value: weaponValue });
+    if (otherValue)   fields.push({ name: '📊 Stats',                  value: otherValue });
 
     const embed = new EmbedBuilder()
       .setColor(0x1ABC9C)
