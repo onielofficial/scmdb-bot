@@ -1,5 +1,10 @@
 ## Updates
 
+### /resource + services/scmdb.js
+- findResource คืนค่า probability % แทน raw contract count
+- probability = loc.count / sum(top6) * 100 (เปรียบเทียบสัมพัทธ์ระหว่าง top locations)
+- Display: "Best match: **20.9%** at **Hurston** (Stanton)", ranked list แสดง % เท่านั้น
+
 ### /resource, /blueprint, /quest
 - เพิ่ม autocomplete: resource ใช้ resourcePools, blueprint ใช้ blueprintPools, quest ใช้ contract titles
 

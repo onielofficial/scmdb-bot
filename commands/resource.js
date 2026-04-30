@@ -42,16 +42,15 @@ module.exports = {
       });
     }
 
-    const total = results.reduce((s, r) => s + r.contracts, 0);
-
     // Separate star-system-level entries from actual mining locations
     const locations = results.filter(r => r.type !== 'Star');
     const stars     = results.filter(r => r.type === 'Star');
 
-    // Best source: top non-Star location by contract count
+    // Best match: top non-Star location by probability
     const best = locations[0];
-    const bestLabel = best
-      ? '**' + best.name + '**' + (best.system !== '?' ? ' (' + best.system + ')' : '')
+    const bestDesc = best
+      ? '**' + best.probability + '%** at **' + best.name + '**' +
+        (best.system !== '?' ? ' (' + best.system + ')' : '')
       : '—';
 
     // Top 4 location inline tags (skip star-level entries)
@@ -66,20 +65,16 @@ module.exports = {
     ])];
     const types = [...new Set(locations.map(r => r.type).filter(Boolean))];
 
-    // Ranked location list with contract counts and proportion %
+    // Ranked location list with probability %
     const MEDALS = ['🥇', '🥈', '🥉'];
-    const ranked = locations.map((r, i) => {
-      const pct = (r.contracts / total * 100).toFixed(1);
-      return (MEDALS[i] ?? '▸') + '  **' + r.name + '**  ·  ' + r.contracts + ' contracts (' + pct + '%)';
-    }).join('\n');
+    const ranked = locations.map((r, i) =>
+      (MEDALS[i] ?? '▸') + '  **' + r.name + '**  ·  ' + r.probability + '%'
+    ).join('\n');
 
     const embed = new EmbedBuilder()
       .setColor(0xFAA61A)
       .setTitle('🪨  Resource — ' + material)
-      .setDescription(
-        '**' + total + '** total contracts  ·  Best source: ' + bestLabel + '\n\n' +
-        locTags
-      )
+      .setDescription('Best match: ' + bestDesc + '\n\n' + locTags)
       .addFields(
         {
           name: '🌌  Systems',

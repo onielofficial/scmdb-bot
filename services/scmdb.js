@@ -109,15 +109,16 @@ function findResource(keyword) {
     }
   }
 
-  return Object.values(locationCounts)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 6)
-    .map(loc => ({
-      name: loc.name,
-      system: loc.system || '?',
-      type: loc.type || '?',
-      contracts: loc.count,
-    }));
+  const sorted = Object.values(locationCounts).sort((a, b) => b.count - a.count).slice(0, 6);
+  const totalOrders = sorted.reduce((s, l) => s + l.count, 0);
+
+  return sorted.map(loc => ({
+    name: loc.name,
+    system: loc.system || '?',
+    type: loc.type || '?',
+    contracts: loc.count,
+    probability: totalOrders > 0 ? parseFloat((loc.count / totalOrders * 100).toFixed(1)) : 0,
+  }));
 }
 
 function getCraftInfo(itemName) {
