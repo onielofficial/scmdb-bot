@@ -105,7 +105,7 @@ module.exports = {
     const focused = interaction.options.getFocused().toLowerCase();
     const data = getData();
     const results = Object.values(data.resourcePools || {})
-      .filter(r => r.name?.toLowerCase().startsWith(focused))
+      .filter(r => r.nameKey && r.name?.toLowerCase().startsWith(focused))
       .slice(0, 25)
       .map(r => ({ name: r.name, value: r.name }));
     await interaction.respond(results);
