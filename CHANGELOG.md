@@ -1,5 +1,12 @@
 ## Updates
 
+### /resource
+- แก้ "Best match %" → "Best source: **Name** (System)" ให้ตรงกับ data จริง
+- เพิ่ม emoji types ที่หายไป: Default/Lagrange → 📡, Belt → ☄️, Cluster → 💫
+- แก้ Systems list: ใช้ชื่อ Star-type entry แทน system field (ที่เป็น "?")
+- แก้ ranked list แสดง contracts + % สัดส่วน เช่น "18 contracts (20.9%)"
+- ซ่อน Star-type entries จาก ranked list และ locTags (ใช้เฉพาะใน Systems)
+
 ### /craft
 - ปรับ UI ใหม่ให้อ่านง่ายขึ้น (Class / Manufacturer / Mass อยู่แถวเดียวกัน)
 - เอา progress bar ออกจาก Materials
