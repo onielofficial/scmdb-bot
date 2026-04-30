@@ -145,7 +145,7 @@ module.exports = {
       const hasMod = (key) => slots.some(s => s.modifiers?.some(m => m.propertyKey === key));
       const pctDiff = (base, crafted) => {
         const d = (crafted - base) / base * 100;
-        return (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
+        return (d >= 0 ? '+' : '') + d.toFixed(2) + '%';
       };
 
       const damageFactor   = getPropertyFactor(slots, 'weapon_damage',            quality);
@@ -163,9 +163,9 @@ module.exports = {
           const craftedDmg = baseDmg * damageFactor;
           const typeLabel  = active.length === 1 ? ' (' + active[0].slice(0,3).toUpperCase() + ')' : '';
           if (hasMod('weapon_damage')) {
-            lines.push(pad('Damage') + baseDmg.toFixed(1).padEnd(14) + '→  ' + craftedDmg.toFixed(1) + typeLabel + '  (' + pctDiff(baseDmg, craftedDmg) + ')');
+            lines.push(pad('Damage') + baseDmg.toFixed(2).padEnd(14) + '→  ' + craftedDmg.toFixed(2) + typeLabel + '  (' + pctDiff(baseDmg, craftedDmg) + ')');
           } else {
-            lines.push(pad('Damage') + baseDmg.toFixed(1) + typeLabel);
+            lines.push(pad('Damage') + baseDmg.toFixed(2) + typeLabel);
           }
 
           // DPS = damage * fireRate / 60
@@ -173,9 +173,9 @@ module.exports = {
             const baseDPS    = baseDmg            * fm0.fireRate                     / 60;
             const craftedDPS = (baseDmg * damageFactor) * (fm0.fireRate * firerateFactor) / 60;
             if (hasMod('weapon_damage') || hasMod('weapon_firerate')) {
-              lines.push(pad('DPS') + baseDPS.toFixed(1).padEnd(14) + '→  ' + craftedDPS.toFixed(1) + '  (' + pctDiff(baseDPS, craftedDPS) + ')');
+              lines.push(pad('DPS') + baseDPS.toFixed(2).padEnd(14) + '→  ' + craftedDPS.toFixed(2) + '  (' + pctDiff(baseDPS, craftedDPS) + ')');
             } else {
-              lines.push(pad('DPS') + baseDPS.toFixed(1));
+              lines.push(pad('DPS') + baseDPS.toFixed(2));
             }
           }
         }
