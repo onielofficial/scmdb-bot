@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { searchQuest } = require('../services/scmdb');
+const { searchQuest, getData } = require('../services/scmdb');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -9,6 +9,7 @@ module.exports = {
       opt.setName('name')
         .setDescription('ชื่อ mission หรือ faction เช่น Foxwell')
         .setRequired(true)
+        .setAutocomplete(true)
     )
     .addStringOption(opt =>
       opt.setName('system')
@@ -80,5 +81,15 @@ module.exports = {
     }
 
     await interaction.editReply({ embeds: [embed] });
+  },
+
+  async autocomplete(interaction) {
+    const focused = interaction.options.getFocused().toLowerCase();
+    const data = getData();
+    const results = (data.contracts || [])
+      .filter(c => c.title?.toLowerCase().startsWith(focused))
+      .slice(0, 25)
+      .map(c => ({ name: c.title, value: c.title }));
+    await interaction.respond(results);
   },
 };

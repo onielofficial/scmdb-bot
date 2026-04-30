@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { searchBlueprint } = require('../services/scmdb');
+const { searchBlueprint, getData } = require('../services/scmdb');
 
 const TECH_PREFIX_RE  = /^(?:MissionGiver|Contract|PU|SCM|GV|TDD|CRU|HUR|MIC|ARC|NB|STT)_/i;
 const COLON_PREFIX_RE = /^[^:]+:\s*/;
@@ -17,6 +17,7 @@ module.exports = {
       opt.setName('name')
         .setDescription('ชื่อ blueprint เช่น Parallax')
         .setRequired(true)
+        .setAutocomplete(true)
     ),
 
   async execute(interaction) {
@@ -89,5 +90,19 @@ module.exports = {
       .setFooter({ text: `SCMDB · scmdb.net • ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}` });
 
     await interaction.editReply({ embeds: [embed] });
+  },
+
+  async autocomplete(interaction) {
+    const focused = interaction.options.getFocused().toLowerCase();
+    const data = getData();
+    const names = [...new Set(
+      Object.values(data.blueprintPools || {})
+        .flatMap(pool => (pool.blueprints || []).map(bp => bp.name).filter(Boolean))
+    )];
+    const results = names
+      .filter(n => n.toLowerCase().startsWith(focused))
+      .slice(0, 25)
+      .map(n => ({ name: n, value: n }));
+    await interaction.respond(results);
   },
 };

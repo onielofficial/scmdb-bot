@@ -1,5 +1,8 @@
 ## Updates
 
+### /resource, /blueprint, /quest
+- เพิ่ม autocomplete: resource ใช้ resourcePools, blueprint ใช้ blueprintPools, quest ใช้ contract titles
+
 ### /resource
 - แก้ "Best match %" → "Best source: **Name** (System)" ให้ตรงกับ data จริง
 - เพิ่ม emoji types ที่หายไป: Default/Lagrange → 📡, Belt → ☄️, Cluster → 💫

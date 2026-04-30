@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { findResource } = require('../services/scmdb');
+const { findResource, getData } = require('../services/scmdb');
 
 const LOC_EMOJI = {
   Star: '⭐', Planet: '🪐', Moon: '🌙',
@@ -19,6 +19,7 @@ module.exports = {
       opt.setName('material')
         .setDescription('ชื่อแร่ เช่น Tungsten')
         .setRequired(true)
+        .setAutocomplete(true)
     ),
 
   async execute(interaction) {
@@ -98,5 +99,15 @@ module.exports = {
       .setFooter({ text: `SCMDB · scmdb.net • ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}` });
 
     await interaction.editReply({ embeds: [embed] });
+  },
+
+  async autocomplete(interaction) {
+    const focused = interaction.options.getFocused().toLowerCase();
+    const data = getData();
+    const results = Object.values(data.resourcePools || {})
+      .filter(r => r.name?.toLowerCase().startsWith(focused))
+      .slice(0, 25)
+      .map(r => ({ name: r.name, value: r.name }));
+    await interaction.respond(results);
   },
 };
