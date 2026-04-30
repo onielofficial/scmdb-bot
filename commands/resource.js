@@ -53,9 +53,12 @@ module.exports = {
         (best.system !== '?' ? ' (' + best.system + ')' : '')
       : '—';
 
-    // Top 4 location inline tags (skip star-level entries)
-    const locTags = locations.slice(0, 4)
-      .map(r => '`' + locEmoji(r.type) + ' ' + r.name + '`')
+    // Top 3 location inline tags (skip star-level entries, truncate long names)
+    const locTags = locations.slice(0, 3)
+      .map(r => {
+        const label = r.name.length > 20 ? r.name.slice(0, 20) + '…' : r.name;
+        return '`' + locEmoji(r.type) + ' ' + label + '`';
+      })
       .join('  ');
 
     // Systems: star entry names + non-star entries' system field (skip '?')

@@ -1,6 +1,10 @@
 ## Updates
 
 ### /resource + services/scmdb.js
+- กรอง location ที่ไม่ valid ออก (ขึ้นต้นด้วย @ หรือมี Snake_Case) ใน findResource
+- ลด locTags เหลือ 3 รายการ และตัดชื่อที่ยาวเกิน 20 ตัวอักษรด้วย "…"
+
+### /resource + services/scmdb.js
 - findResource คืนค่า probability % แทน raw contract count
 - probability = loc.count / sum(top6) * 100 (เปรียบเทียบสัมพัทธ์ระหว่าง top locations)
 - Display: "Best match: **20.9%** at **Hurston** (Stanton)", ranked list แสดง % เท่านั้น

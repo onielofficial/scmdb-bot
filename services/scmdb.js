@@ -102,7 +102,7 @@ function findResource(keyword) {
       if (!matchedKeys.includes(order.resource)) continue;
       for (const locKey of (contract.locations || [])) {
         const loc = data.locationPools?.[locKey];
-        if (!loc?.name) continue;
+        if (!loc?.name || loc.name.startsWith('@') || /^[A-Za-z]+_[A-Za-z]/.test(loc.name)) continue;
         if (!locationCounts[locKey]) locationCounts[locKey] = { ...loc, count: 0 };
         locationCounts[locKey].count++;
       }
